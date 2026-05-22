@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Editor</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://unpkg.com/docx@7.8.2/build/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body { background: #f5f3ec; }
+        .ed-top { background: var(--bg); border-bottom: 1px solid var(--border); padding: 0.9rem 0; position: sticky; top: 0; z-index: 100; }
+        .ed-top-inner { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .ed-back { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); padding: 6px 12px; border: 1px solid var(--border); border-radius: 3px; text-decoration: none; }
+        .ed-back:hover { color: var(--green); border-color: var(--green); }
+        .ed-status { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); display: inline-flex; align-items: center; gap: 8px; }
+        .ed-status .dot { width: 8px; height: 8px; border-radius: 50%; background: #c9c4ae; }
+        .ed-status.saving .dot { background: var(--maroon); animation: pulse 1.5s infinite; }
+        .ed-status.saved .dot { background: #4caf82; }
+        .ed-status.error .dot { background: var(--maroon); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .ed-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ed-btn { background: transparent; border: 1px solid var(--border); padding: 8px 16px; font-family: var(--sans); font-size: 0.85rem; font-weight: 500; color: var(--green); border-radius: 3px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .ed-btn:hover { border-color: var(--green); background: var(--bg-soft); }
+        .ed-btn.primary { background: var(--green); color: var(--bg); border-color: var(--green); }
+        .ed-btn.primary:hover { background: var(--green-dark); }
+
+        /* ─── JUDGE MODE BADGE ─── */
+        .judge-badge {
+            background: var(--maroon);
+            color: var(--bg);
+            font-family: var(--mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 600;
+            display: none;
+        }
+        .judge-badge.show { display: inline-block; }
+
+        .doc-wrap { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+        .doc-title-box { background: var(--bg); border: 1px solid var(--border); padding: 2rem 2.5rem 1.5rem; margin-bottom: 1rem; border-radius: 2px; }
+        .doc-title-input { font-family: var(--serif); font-size: 2.4rem; color: var(--green); border: none; outline: none; width: 100%; background: transparent; font-weight: 500; padding: 0; margin-bottom: 0.5rem; }
+        .doc-title-input::placeholder { color: #c9c4ae; }
+        .doc-abstract-input { font-family: var(--sans); font-size: 0.95rem; color: var(--muted); border: none; outline: none; width: 100%; background: transparent; resize: vertical; line-height: 1.6; min-height: 50px; padding: 0; }
+        .doc-abstract-input::placeholder { color: #c9c4ae; font-style: italic; }
+        .doc-meta-row { display: flex; gap: 1.5rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border); flex-wrap: wrap; align-items: center; }
+        .meta-item { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; }
+        .meta-select { padding: 4px 8px; border: 1px solid var(--border); background: var(--bg); font-family: var(--mono); font-size: 0.7rem; color: var(--green); text-transform: uppercase; letter-spacing: 0.15em; border-radius: 2px; outline: none; cursor: pointer; }
+        .editor-card { background: var(--bg); border: 1px solid var(--border); border-radius: 2px; overflow: hidden; min-height: 600px; position: relative; }
+        .ql-toolbar.ql-snow { border: none !important; border-bottom: 1px solid var(--border) !important; padding: 0.7rem 1rem !important; background: #f9f7ef; position: sticky; top: 70px; z-index: 50; }
+        .ql-container.ql-snow { border: none !important; min-height: 550px; }
+        .ql-editor { font-family: 'Cormorant Garamond', serif !important; font-size: 18px !important; line-height: 1.7 !important; color: var(--green) !important; padding: 3rem 3.5rem !important; min-height: 550px; }
+        .ql-editor.ql-blank::before { font-family: 'Cormorant Garamond', serif !important; font-size: 18px !important; font-style: italic !important; color: #c9c4ae !important; left: 3.5rem !important; }
+        .ql-editor h1, .ql-editor h2, .ql-editor h3 { font-family: 'Cormorant Garamond', serif !important; color: var(--green) !important; font-weight: 600 !important; }
+
+        .ql-editor img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 1rem auto;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: outline 0.15s;
+        }
+        .ql-editor img:hover { outline: 2px dashed var(--maroon); outline-offset: 4px; }
+        .ql-editor img.selected-img { outline: 2px solid var(--maroon); outline-offset: 4px; }
+
+        .img-resize-toolbar {
+            display: none;
+            position: absolute;
+            background: var(--green);
+            border-radius: 4px;
+            padding: 6px;
+            gap: 4px;
+            box-shadow: 0 8px 24px rgba(20, 42, 31, 0.3);
+            z-index: 1000;
+            align-items: center;
+        }
+        .img-resize-toolbar.show { display: inline-flex; }
+        .img-resize-toolbar button {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--bg);
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-weight: 500;
+        }
+        .img-resize-toolbar button:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.3); }
+        .img-resize-toolbar button.delete-btn { color: #ff9b9b; }
+        .img-resize-toolbar button.delete-btn:hover { background: rgba(255, 100, 100, 0.2); border-color: rgba(255, 100, 100, 0.5); }
+        .img-resize-toolbar .divider { width: 1px; height: 18px; background: rgba(255, 255, 255, 0.2); margin: 0 2px; }
+
+        .bottom-info { background: var(--bg); border: 1px solid var(--border); padding: 0.8rem 1.5rem; margin-top: 1rem; border-radius: 2px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.8rem; }
+        .bottom-info-item { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.15em; }
+        .bottom-info-item strong { color: var(--green); }
+        .download-wrap { position: relative; display: inline-block; }
+        .download-menu { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: var(--bg); border: 1px solid var(--border); border-radius: 3px; min-width: 200px; box-shadow: 0 10px 30px rgba(20, 42, 31, 0.15); z-index: 200; overflow: hidden; }
+        .download-menu.open { display: block; }
+        .download-menu button { display: flex; align-items: center; gap: 10px; width: 100%; background: transparent; border: none; padding: 12px 16px; text-align: left; font-family: var(--sans); font-size: 0.9rem; color: var(--green); cursor: pointer; }
+        .download-menu button:hover { background: var(--bg-soft); }
+        .error-overlay { position: fixed; inset: 0; background: rgba(20, 42, 31, 0.92); z-index: 9999; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .error-overlay.show { display: flex; }
+        .error-card { background: var(--bg); border-radius: 4px; padding: 2rem 2.5rem; max-width: 540px; text-align: center; }
+        .error-card h2 { font-family: var(--serif); color: var(--maroon); font-size: 1.8rem; margin-bottom: 1rem; }
+        .error-card p { color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6; }
+
+        @media (max-width: 768px) {
+            .ed-top-inner { flex-direction: column; align-items: stretch; }
+            .ed-actions { justify-content: flex-end; }
+            .doc-title-box { padding: 1.5rem 1.5rem 1rem; }
+            .doc-title-input { font-size: 1.7rem; }
+            .ql-editor { padding: 2rem 1.5rem !important; font-size: 16px !important; }
+            .ql-editor.ql-blank::before { left: 1.5rem !important; font-size: 16px !important; }
+            .img-resize-toolbar button { padding: 4px 7px; font-size: 0.66rem; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="ed-top">
+        <div class="container">
+            <div class="ed-top-inner">
+                <!-- IMPORTANT: id="edBackLink" — JS isko judge/student ke hisaab se update karega -->
+                <a href="student-dashboard.html" id="edBackLink" class="ed-back">Back to Dashboard</a>
+
+                <div style="display:flex; align-items:center; gap:1rem;">
+                    <span class="judge-badge" id="judgeBadge">Judge Review Mode</span>
+                    <div class="ed-status saved" id="saveStatus">
+                        <span class="dot"></span>
+                        <span id="saveText">All changes saved</span>
+                    </div>
+                </div>
+
+                <div class="ed-actions">
+                    <button class="ed-btn" onclick="manualSave()">Save</button>
+                    <div class="download-wrap">
+                        <button class="ed-btn primary" onclick="toggleDownload(event)">Download</button>
+                        <div class="download-menu" id="downloadMenu">
+                            <button onclick="downloadPDF()">Download as PDF</button>
+                            <button onclick="downloadDOCX()">Download as Word (.docx)</button>
+                            <button onclick="downloadHTML()">Download as HTML</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="doc-wrap">
+        <div class="doc-title-box">
+            <input type="text" class="doc-title-input" id="docTitle" placeholder="Your paper title" autocomplete="off">
+            <textarea class="doc-abstract-input" id="docAbstract" placeholder="Write a brief abstract (2-3 sentences)" rows="2"></textarea>
+
+            <div class="doc-meta-row">
+                <div class="meta-item">
+                    Track:
+                    <select class="meta-select" id="docTrack">
+                        <option value="research">Research Paper</option>
+                        <option value="essay">Essay</option>
+                    </select>
+                </div>
+                <div class="meta-item">
+                    Status:
+                    <select class="meta-select" id="docStatus">
+                        <option value="draft">Draft</option>
+                        <option value="under_review">Under Review</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+                <div class="meta-item" id="lastSavedTime">-</div>
+            </div>
+        </div>
+
+        <div class="editor-card">
+            <div id="editor"></div>
+
+            <div class="img-resize-toolbar" id="imgResizeToolbar">
+                <button onclick="resizeImg(25)" title="Small (25%)">S</button>
+                <button onclick="resizeImg(50)" title="Medium (50%)">M</button>
+                <button onclick="resizeImg(75)" title="Large (75%)">L</button>
+                <button onclick="resizeImg(100)" title="Full width">Full</button>
+                <span class="divider"></span>
+                <button onclick="customResize()" title="Custom size">Custom</button>
+                <span class="divider"></span>
+                <button class="delete-btn" onclick="deleteImg()" title="Delete image">✕</button>
+            </div>
+        </div>
+
+        <div class="bottom-info">
+            <div class="bottom-info-item">Words: <strong id="wordCount">0</strong></div>
+            <div class="bottom-info-item">Characters: <strong id="charCount">0</strong></div>
+            <div class="bottom-info-item">Reading time: <strong id="readTime">0 min</strong></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <div class="error-overlay" id="errorOverlay">
+        <div class="error-card">
+            <h2 id="errTitle">Something went wrong</h2>
+            <p id="errMsg">An unexpected error occurred.</p>
+            <!-- IMPORTANT: id="errBackBtn" — JS isko bhi update karega -->
+            <button class="ed-btn primary" id="errBackBtn" onclick="goBackToDashboard()">Back to Dashboard</button>
+        </div>
+    </div>
+
+    <script src="paper-editor.js"></script>
+
+</body>
+
+</html>
