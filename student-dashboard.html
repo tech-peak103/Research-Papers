@@ -1,449 +1,326 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard · Scholarly Compass</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <style>
-        body { background: #fbfbfb; }
-
-        /* Dashboard topbar */
-        .dash-top { background: var(--bg); border-bottom: 1px solid var(--border); padding: 1rem 0; position: sticky; top: 0; z-index: 100; }
-        .dash-top-inner { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-        .dash-user { display: flex; align-items: center; gap: 12px; }
-        .dash-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: var(--bg); display: flex; align-items: center; justify-content: center; font-family: var(--serif); font-size: 1.1rem; font-weight: 500; }
-        .dash-uname { font-family: var(--serif); font-size: 1.05rem; color: var(--green); font-weight: 500; }
-        .dash-uid { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); letter-spacing: 0.15em; text-transform: uppercase; }
-        .logout-btn { background: transparent; border: 1px solid var(--border); padding: 0.5rem 1rem; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); border-radius: 3px; cursor: pointer; transition: all 0.2s; }
-        .logout-btn:hover { color: var(--maroon); border-color: var(--maroon); }
-
-        /* Dashboard body */
-        .dash-body { max-width: 1200px; margin: 0 auto; padding: 3rem 1.5rem; }
-        .dash-welcome { margin-bottom: 3rem; }
-        .dash-welcome h1 { font-family: var(--serif); font-size: clamp(2.2rem, 4.5vw, 3.4rem); color: var(--green); font-weight: 500; margin-bottom: 0.4rem; }
-        .dash-welcome h1 em { color: var(--maroon); font-style: italic; }
-        .dash-welcome p { color: var(--muted); font-size: 1rem; }
-
-        .sec-row { display: flex; justify-content: space-between; align-items: end; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-        .sec-row h2 { font-family: var(--serif); font-size: 1.8rem; color: var(--green); font-weight: 500; margin: 0; }
-
-        .new-paper-btn { background: var(--green); color: var(--bg); border: 1px solid var(--green); padding: 0.85rem 1.6rem; font-family: var(--sans); font-size: 0.95rem; font-weight: 500; border-radius: 3px; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.6rem; }
-        .new-paper-btn:hover { background: var(--green-dark); gap: 1rem; }
-
-        /* Papers grid */
-        .papers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 1.5rem; }
-
-        .paper-card {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            padding: 1.6rem 1.4rem;
-            border-radius: 3px;
-            cursor: pointer;
-            transition: all 0.25s;
-            position: relative;
-            display: block;
-        }
-        .paper-card:hover {
-            border-color: var(--maroon);
-            transform: translateY(-3px);
-            box-shadow: 0 12px 32px rgba(20, 42, 31, 0.08);
-        }
-        .paper-card:hover .delete-icon { opacity: 1; }
-
-        /* ─── DELETE ICON ─── */
-        .delete-icon {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            width: 32px;
-            height: 32px;
-            background: rgba(139, 46, 46, 0.08);
-            border: 1px solid transparent;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: all 0.2s;
-            z-index: 10;
-        }
-        .delete-icon:hover {
-            background: var(--maroon);
-            border-color: var(--maroon);
-            transform: scale(1.1);
-        }
-        .delete-icon svg {
-            width: 14px;
-            height: 14px;
-            stroke: var(--maroon);
-            transition: stroke 0.2s;
-        }
-        .delete-icon:hover svg { stroke: #fff; }
-
-        /* Mobile par hamesha visible */
-        @media (max-width: 768px) {
-            .delete-icon { opacity: 1; }
-        }
-
-        .paper-track { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.22em; color: var(--maroon); text-transform: uppercase; border-top: 1px solid var(--maroon); padding-top: 0.4rem; display: inline-block; margin-bottom: 1rem; font-weight: 500; }
-        .paper-title {
-            font-family: var(--serif);
-            font-size: 1.3rem;
-            color: var(--green);
-            font-weight: 500;
-            line-height: 1.3;
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            padding-right: 36px;  /* delete icon ke liye space */
-        }
-        .paper-abstract { font-family: var(--sans); font-size: 0.85rem; color: var(--muted); line-height: 1.5; margin-bottom: 1rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.4em; }
-        .paper-meta { display: flex; justify-content: space-between; align-items: center; padding-top: 0.8rem; border-top: 1px solid var(--border); font-size: 0.78rem; }
-        .paper-words { font-family: var(--mono); color: var(--muted); }
-        .paper-status { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
-        .paper-status.draft { background: rgba(138, 160, 184, 0.15); color: var(--muted); }
-        .paper-status.under_review { background: rgba(232, 146, 74, 0.15); color: #b56a1f; }
-        .paper-status.completed { background: rgba(76, 175, 130, 0.15); color: #2a6b40; }
-        .paper-status.awarded { background: rgba(201, 160, 90, 0.2); color: #8a6a2f; }
-
-        .empty-state { text-align: center; padding: 4rem 2rem; background: var(--bg); border: 1px dashed var(--border); border-radius: 4px; }
-        .empty-state .em-icon { font-family: var(--serif); font-size: 4rem; color: var(--border); margin-bottom: 1rem; }
-        .empty-state h3 { font-family: var(--serif); font-size: 1.5rem; color: var(--green); margin-bottom: 0.5rem; }
-        .empty-state p { color: var(--muted); margin-bottom: 1.5rem; }
-        .loading { text-align: center; padding: 3rem; color: var(--muted); font-family: var(--mono); font-size: 0.85rem; letter-spacing: 0.15em; text-transform: uppercase; }
-
-        /* ─── CONFIRMATION MODAL ─── */
-        .confirm-overlay {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(20, 42, 31, 0.65);
-            backdrop-filter: blur(4px);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .confirm-overlay.show { display: flex; animation: fadeIn 0.2s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .confirm-box {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            max-width: 440px;
-            width: 100%;
-            padding: 2rem 2.2rem;
-            text-align: center;
-            box-shadow: 0 24px 64px rgba(20, 42, 31, 0.3);
-            animation: slideDown 0.25s ease;
-        }
-        @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-        .confirm-icon { width: 64px; height: 64px; background: rgba(139, 46, 46, 0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.2rem; }
-        .confirm-icon svg { width: 28px; height: 28px; stroke: var(--maroon); }
-        .confirm-title { font-family: var(--serif); font-size: 1.6rem; color: var(--green); margin-bottom: 0.6rem; font-weight: 500; }
-        .confirm-msg { color: var(--muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 0.5rem; }
-        .confirm-paper-name { font-family: var(--serif); font-style: italic; color: var(--green); font-size: 1rem; margin-bottom: 1.5rem; padding: 0.6rem 1rem; background: var(--bg-soft); border-radius: 3px; }
-        .confirm-actions { display: flex; gap: 0.8rem; justify-content: center; }
-        .confirm-btn { padding: 0.7rem 1.6rem; font-family: var(--sans); font-size: 0.9rem; font-weight: 500; border-radius: 3px; cursor: pointer; transition: all 0.2s; border: 1px solid; min-width: 110px; }
-        .confirm-btn.cancel { background: transparent; color: var(--muted); border-color: var(--border); }
-        .confirm-btn.cancel:hover { color: var(--green); border-color: var(--green); }
-        .confirm-btn.delete { background: var(--maroon); color: var(--bg); border-color: var(--maroon); }
-        .confirm-btn.delete:hover { background: var(--maroon-dark); border-color: var(--maroon-dark); }
-        .confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        @media (max-width: 575px) {
-            .dash-uname { font-size: 0.9rem; }
-            .dash-uid { font-size: 0.6rem; }
-            .dash-avatar { width: 34px; height: 34px; font-size: 0.9rem; }
-        }
-    </style>
 </head>
-<body>
 
-<!-- Topbar -->
-<nav class="dash-top">
-    <div class="container">
-        <div class="dash-top-inner">
-            <a href="#" class="brand">
-                <div class="brand-box">S</div>
-                <div>
-                    <div class="brand-name">Scholarly Compass</div>
-                    <span class="brand-sub">Student Dashboard</span>
+<body class="dash-student">
+
+    <nav class="dash-top">
+        <div class="container">
+            <div class="dash-top-inner">
+                <a href="#" class="brand">
+                    <div class="brand-box"><img
+                            src="https://fr1ekw4xx.tribe.junction.express/uploads/2025/05-May/29-Thu/sm/header-icon_6838241632ce3.png"
+                            alt="" style="width: 40px; height: 40px;"></div>
+                    <div>
+                        <div class="brand-name">Peak Potentia</div>
+                        <span class="brand-sub">Student Portal</span>
+                    </div>
+                </a>
+                <div class="dash-user">
+                    <div class="dash-avatar" id="userAv">—</div>
+                    <div>
+                        <div class="dash-uname" id="userName">—</div>
+                        <div class="dash-uid" id="userId">—</div>
+                    </div>
+                    <button class="logout-btn" onclick="doLogout()">Logout</button>
                 </div>
-            </a>
-            <div class="dash-user">
-                <div class="dash-avatar" id="userAv">—</div>
-                <div>
-                    <div class="dash-uname" id="userName">—</div>
-                    <div class="dash-uid" id="userId">—</div>
-                </div>
-                <button class="logout-btn" onclick="doLogout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dash-body">
+        <div class="dash-welcome">
+            <div>
+                <h1>Welcome, <em id="welcomeName">Student</em></h1>
+                <p>Write, edit, and track your research papers and essays here.</p>
+            </div>
+            <button class="new-btn" onclick="openNewModal()">+ New Paper</button>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="label">My Papers</div>
+                <div class="num" id="statTotal">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Drafts</div>
+                <div class="num" id="statDraft">—</div>
+            </div>
+            <div class="stat-card accent">
+                <div class="label">Under Review</div>
+                <div class="num" id="statReview">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Completed</div>
+                <div class="num" id="statDone">—</div>
+            </div>
+        </div>
+
+        <!-- Reviewing writer banner -->
+        <div id="mentorBanner" class="mentor-banner" style="display:none;"></div>
+
+        <div class="tab-row">
+            <div class="tab active" onclick="setView('all', event)">All</div>
+            <div class="tab" onclick="setView('draft', event)">Drafts</div>
+            <div class="tab" onclick="setView('under_review', event)">Under Review</div>
+            <div class="tab" onclick="setView('completed', event)">Completed</div>
+        </div>
+
+        <div id="papersList">
+            <div class="loading">Loading papers…</div>
+        </div>
+    </div>
+
+    <!-- ───── NEW PAPER MODAL ───── -->
+    <div class="modal-overlay" id="newModal" onclick="newModalBg(event)">
+        <div class="modal-box">
+            <h2>New Paper</h2>
+            <div class="msub">Choose a title and track — then the editor will open.</div>
+            <div class="fld">
+                <label>Title</label>
+                <input type="text" id="newTitle" placeholder="e.g. The Future of Renewable Energy" autocomplete="off">
+            </div>
+            <div class="fld">
+                <label>Track</label>
+                <select id="newTrack">
+                    <option value="research">Research Paper</option>
+                    <option value="essay">Essay</option>
+                </select>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-ghost" onclick="closeNewModal()">Cancel</button>
+                <button class="btn-solid" id="newCreateBtn" onclick="createPaper()">Create &amp; Open →</button>
             </div>
         </div>
     </div>
-</nav>
 
-<!-- Body -->
-<div class="dash-body">
-    <div class="dash-welcome">
-        <h1>Welcome, <em id="welcomeName">Scholar</em></h1>
-        <p>Manage your research papers and essays. Click any paper to continue writing, or start a new one below.</p>
-    </div>
+    <div id="toast"></div>
 
-    <div class="sec-row">
-        <h2>My Papers</h2>
-        <button class="new-paper-btn" onclick="createNewPaper()">+ New Paper</button>
-    </div>
+    <script>
+        'use strict';
+        var SUPABASE_URL = 'https://uxhltsmddtuiqoadhdfd.supabase.co';
+        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aGx0c21kZHR1aXFvYWRoZGZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc2NDIsImV4cCI6MjA5NTAwMzY0Mn0.oKwtLMYhOpj_z4W-G9aEe1kmp9_q6sLDl273dQLBfbw';
+        var IS_LIVE = SUPABASE_URL && SUPABASE_URL.indexOf('https://') === 0;
+        var sb = IS_LIVE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-    <div id="papersGrid" class="papers-grid">
-        <div class="loading">Loading your papers…</div>
-    </div>
-</div>
+        /* ─── SESSION (per-tab → refresh-safe, dusri tab se nahi hilta) ─── */
+        function loadSession() {
+            var raw = sessionStorage.getItem('sc_user') || localStorage.getItem('sc_user');
+            if (!raw) return null;
+            try { var u = JSON.parse(raw); sessionStorage.setItem('sc_user', raw); return u; }
+            catch (e) { return null; }
+        }
+        var USER = loadSession();
+        if (!USER || !USER.id) {
+            window.location.href = 'index.html';
+        }
+        /* NOTE: yahan role ke hisaab se redirect NAHI karte — warna refresh par
+           page badal jaata hai. Sahi dashboard login ke time hi khulta hai (auth.js). */
 
-<!-- Toast -->
-<div id="toast"></div>
+        var MY_PAPERS = [], VIEW = 'all';
+        var WRITER_BY_PAPER = {};   // paper_id -> [writer reg objects]
+        var MY_WRITERS = {};        // writer_id -> writer reg object
 
-<!-- Delete Confirmation Modal -->
-<div class="confirm-overlay" id="confirmOverlay">
-    <div class="confirm-box">
-        <div class="confirm-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path>
-                <path d="M10 11v6"></path>
-                <path d="M14 11v6"></path>
-                <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
-            </svg>
-        </div>
-        <div class="confirm-title">Delete this paper?</div>
-        <div class="confirm-msg">Yeh action <strong>permanent</strong> hai. Paper aur uski saari content delete ho jayegi.</div>
-        <div class="confirm-paper-name" id="confirmPaperName">-</div>
-        <div class="confirm-actions">
-            <button class="confirm-btn cancel" onclick="closeConfirm()">Cancel</button>
-            <button class="confirm-btn delete" id="confirmDeleteBtn" onclick="executeDelete()">Yes, Delete</button>
-        </div>
-    </div>
-</div>
+        function initials(n) { return (n || 'S').split(' ').map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
+        function fmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
+        function fmtWhen(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
+        function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-<script>
-'use strict';
+        document.getElementById('userName').textContent = USER.full_name;
+        document.getElementById('userId').textContent = '@' + (USER.username || '');
+        document.getElementById('userAv').textContent = initials(USER.full_name);
+        document.getElementById('welcomeName').textContent = (USER.full_name || 'Student').split(' ')[0];
 
-/* ─── SUPABASE CONFIG ─── */
-var SUPABASE_URL = 'https://uxhltsmddtuiqoadhdfd.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aGx0c21kZHR1aXFvYWRoZGZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc2NDIsImV4cCI6MjA5NTAwMzY0Mn0.oKwtLMYhOpj_z4W-G9aEe1kmp9_q6sLDl273dQLBfbw';
-var IS_LIVE = SUPABASE_URL && SUPABASE_URL.indexOf('https://') === 0;
-var sb = IS_LIVE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+        var _tt;
+        function toast(msg, type) { type = type || ''; var el = document.getElementById('toast'); el.textContent = msg; el.className = 'show ' + type; clearTimeout(_tt); _tt = setTimeout(function () { el.className = ''; }, 3000); }
 
-/* ─── SESSION CHECK ─── */
-var USER = null;
-try { USER = JSON.parse(sessionStorage.getItem('sc_user')); } catch (e) {}
+        /* ═══════════════ LOAD MY PAPERS ═══════════════ */
+        async function loadPapers() {
+            var list = document.getElementById('papersList');
+            if (!IS_LIVE) { list.innerHTML = '<div class="loading">Supabase config missing</div>'; return; }
+            try {
+                var res = await sb.from('papers')
+                    .select('*')
+                    .eq('student_id', USER.id)
+                    .order('updated_at', { ascending: false });
+                if (res.error) throw res.error;
+                MY_PAPERS = res.data || [];
 
-if (!USER || !USER.id) {
-    window.location.href = 'index.html';
-}
+                await loadMyWriters();   // kaun sa writer mere papers par assign hai
 
-/* ─── State ─── */
-var _pendingDeleteId = null;
+                document.getElementById('statTotal').textContent = MY_PAPERS.length;
+                document.getElementById('statDraft').textContent = MY_PAPERS.filter(function (p) { return (p.status || 'draft') === 'draft'; }).length;
+                document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
+                document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
 
-/* ─── INIT ─── */
-function initials(name) {
-    return (name || 'S').split(' ').map(function(n){ return n[0]; }).join('').slice(0, 2).toUpperCase();
-}
-
-document.getElementById('userName').textContent = USER.full_name;
-document.getElementById('userId').textContent = '@' + USER.username;
-document.getElementById('userAv').textContent = initials(USER.full_name);
-document.getElementById('welcomeName').textContent = USER.full_name.split(' ')[0];
-
-/* ─── TOAST ─── */
-var _tt;
-function toast(msg, type) {
-    type = type || '';
-    var el = document.getElementById('toast');
-    el.textContent = msg;
-    el.className = 'show ' + type;
-    clearTimeout(_tt);
-    _tt = setTimeout(function(){ el.className = ''; }, 3000);
-}
-
-/* ─── ESCAPE HTML ─── */
-function escapeHtml(s) {
-    if (!s) return '';
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
-
-/* ─── LOAD PAPERS ─── */
-async function loadPapers() {
-    var grid = document.getElementById('papersGrid');
-
-    if (!IS_LIVE) {
-        grid.innerHTML = '<div class="loading">Supabase config missing.</div>';
-        return;
-    }
-
-    try {
-        var result = await sb.from('papers')
-            .select('*')
-            .eq('student_id', USER.id)
-            .order('updated_at', { ascending: false });
-
-        if (result.error) throw result.error;
-        var data = result.data || [];
-
-        if (!data.length) {
-            grid.innerHTML =
-                '<div class="empty-state" style="grid-column: 1/-1;">' +
-                    '<div class="em-icon">📜</div>' +
-                    '<h3>No papers yet</h3>' +
-                    '<p>Start your scholarly journey by creating your first paper.</p>' +
-                    '<button class="new-paper-btn" onclick="createNewPaper()">+ Create First Paper</button>' +
-                '</div>';
-            return;
+                renderMentorBanner();
+                render();
+            } catch (e) { list.innerHTML = '<div class="loading">Error: ' + e.message + '</div>'; }
         }
 
-        // Trash icon SVG (string concatenation, safe)
-        var trashIcon =
-            '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
-                '<polyline points="3 6 5 6 21 6"></polyline>' +
-                '<path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"></path>' +
-                '<path d="M10 11v6"></path>' +
-                '<path d="M14 11v6"></path>' +
-                '<path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>' +
-            '</svg>';
+        /* mere papers ke collaborators (writers) load karo */
+        async function loadMyWriters() {
+            WRITER_BY_PAPER = {}; MY_WRITERS = {};
+            var ids = MY_PAPERS.map(function (p) { return p.id; });
+            if (!ids.length) return;
+            try {
+                var col = await sb.from('paper_collaborators').select('paper_id, judge_id').in('paper_id', ids);
+                if (!col || col.error || !col.data || !col.data.length) return;
 
-        var html = '';
-        for (var i = 0; i < data.length; i++) {
-            var p = data[i];
-            var safeTitle = escapeHtml(p.title || 'Untitled Paper');
-            var safeAbstract = escapeHtml(p.abstract || 'No abstract yet. Click to continue writing...');
-            var safeStatus = p.status || 'draft';
-            var statusText = safeStatus.replace('_', ' ');
-            var trackText = (p.track === 'essay' ? 'Essay' : 'Research');
-            var words = Number(p.word_count) || 0;
-            var titleForBtn = safeTitle.replace(/'/g, '&#39;');
+                var judgeIds = {};
+                col.data.forEach(function (c) {
+                    (WRITER_BY_PAPER[c.paper_id] = WRITER_BY_PAPER[c.paper_id] || []).push(c.judge_id);
+                    judgeIds[c.judge_id] = true;
+                });
+                var jids = Object.keys(judgeIds);
+                if (!jids.length) return;
 
-            html += '<div class="paper-card" onclick="openPaper(\'' + p.id + '\')">';
-            html +=   '<div class="delete-icon" onclick="askDelete(event, \'' + p.id + '\', \'' + titleForBtn + '\')" title="Delete paper">';
-            html +=     trashIcon;
-            html +=   '</div>';
-            html +=   '<div class="paper-track">Track · ' + trackText + '</div>';
-            html +=   '<div class="paper-title">' + safeTitle + '</div>';
-            html +=   '<div class="paper-abstract">' + safeAbstract + '</div>';
-            html +=   '<div class="paper-meta">';
-            html +=     '<span class="paper-words">' + words + ' words</span>';
-            html +=     '<span class="paper-status ' + safeStatus + '">' + statusText + '</span>';
-            html +=   '</div>';
-            html += '</div>';
+                var tr = await sb.from('registrations').select('id, full_name, username, role').in('id', jids);
+                if (!tr || tr.error || !tr.data) return;
+                var tmap = {};
+                tr.data.forEach(function (t) { tmap[t.id] = t; });
+
+                Object.keys(WRITER_BY_PAPER).forEach(function (pid) {
+                    WRITER_BY_PAPER[pid] = WRITER_BY_PAPER[pid]
+                        .map(function (jid) { return tmap[jid]; })
+                        .filter(Boolean);
+                    WRITER_BY_PAPER[pid].forEach(function (t) { MY_WRITERS[t.id] = t; });
+                });
+            } catch (e) { /* non-critical */ }
         }
-        grid.innerHTML = html;
 
-    } catch (e) {
-        grid.innerHTML = '<div class="loading">Error: ' + e.message + '</div>';
-        console.error('[loadPapers]', e);
-    }
-}
+        function renderMentorBanner() {
+            var el = document.getElementById('mentorBanner');
+            if (!MY_PAPERS.length) { el.style.display = 'none'; return; }
+            el.style.display = 'block';
+            var writers = Object.keys(MY_WRITERS).map(function (k) { return MY_WRITERS[k]; });
+            if (!writers.length) {
+                el.innerHTML = '<span class="mb-label">Reviewing writer</span>No writer has been assigned to any of your papers yet. The admin will assign one, and then it will appear here.';
+            } else {
+                var names = writers.map(function (t) { return '<strong>' + esc(t.full_name) + '</strong>'; }).join(', ');
+                el.innerHTML = '<span class="mb-label">Your reviewing writer' + (writers.length > 1 ? 's' : '') + '</span>' + names;
+            }
+        }
 
-/* ─── OPEN PAPER ─── */
-function openPaper(id) {
-    window.location.href = 'paper-editor.html?id=' + id;
-}
+        function setView(v, e) {
+            VIEW = v;
+            document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+            if (e) e.target.classList.add('active');
+            render();
+        }
 
-/* ─── CREATE NEW PAPER ─── */
-async function createNewPaper() {
-    if (!IS_LIVE) { toast('Supabase config missing', 'error'); return; }
+        function writerCell(pid) {
+            var list = WRITER_BY_PAPER[pid] || [];
+            if (!list.length) return '<span class="writer-cell"><span class="none">Not assigned yet</span></span>';
+            return '<span class="writer-cell">' + list.map(function (t) { return '<span class="writer-tag">' + esc(t.full_name) + '</span>'; }).join('') + '</span>';
+        }
 
-    try {
-        var result = await sb.from('papers').insert({
-            student_id: USER.id,
-            title: 'Untitled Paper',
-            track: 'research',
-            status: 'draft',
-            content: ''
-        }).select().single();
+        function render() {
+            var list = document.getElementById('papersList');
+            var data = MY_PAPERS;
+            if (VIEW === 'draft') data = MY_PAPERS.filter(function (p) { return (p.status || 'draft') === 'draft'; });
+            else if (VIEW === 'under_review') data = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; });
+            else if (VIEW === 'completed') data = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; });
 
-        if (result.error) throw result.error;
+            if (!data.length) {
+                list.innerHTML = '<div class="empty-state"><div class="em-icon">✒️</div><h3>No papers yet</h3><p>'
+                    + (VIEW === 'all' ? 'Start writing your first paper.' : 'There is nothing in this filter.')
+                    + '</p>' + (VIEW === 'all' ? '<button class="new-btn" onclick="openNewModal()">+ New Paper</button>' : '') + '</div>';
+                return;
+            }
+            var h = '<div class="card-wrap"><table><thead><tr><th>Title</th><th>Track</th><th>Reviewing writer</th><th>Words</th><th>Status</th><th>Last edit</th><th></th></tr></thead><tbody>';
+            data.forEach(function (p) {
+                var lastEd = p.last_editor_name
+                    ? esc(p.last_editor_name) + ' (' + (p.last_editor_role === 'writer' ? 'Writer' : p.last_editor_role === 'admin' ? 'Admin' : p.last_editor_role === 'co_admin' ? 'Co-Admin' : 'You') + ')<div class="last-ed">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>'
+                    : '<span class="psub">' + fmtDate(p.updated_at) + '</span>';
+                h += '<tr onclick="openPaper(\'' + p.id + '\')">'
+                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div>' + (p.abstract ? '<div class="psub">' + esc(String(p.abstract).slice(0, 80)) + (String(p.abstract).length > 80 ? '…' : '') + '</div>' : '') + '</td>'
+                    + '<td style="font-family:var(--mono);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</td>'
+                    + '<td>' + writerCell(p.id) + '</td>'
+                    + '<td>' + (p.word_count || 0) + '</td>'
+                    + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
+                    + '<td>' + lastEd + '</td>'
+                    + '<td><div class="row-actions"><button class="view-btn" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit →</button>' + delBtn(p.id) + '</div></td>'
+                    + '</tr>';
+            });
+            h += '</tbody></table></div>';
+            list.innerHTML = h;
+        }
 
-        toast('New paper created!', 'success');
-        setTimeout(function() {
-            window.location.href = 'paper-editor.html?id=' + result.data.id;
-        }, 500);
+        /* ═══════════════ NEW PAPER ═══════════════ */
+        function openNewModal() { document.getElementById('newTitle').value = ''; document.getElementById('newTrack').value = 'research'; document.getElementById('newModal').classList.add('show'); setTimeout(function () { document.getElementById('newTitle').focus(); }, 50); }
+        function closeNewModal() { document.getElementById('newModal').classList.remove('show'); }
+        function newModalBg(e) { if (e.target && e.target.id === 'newModal') closeNewModal(); }
 
-    } catch (e) {
-        toast('Error: ' + e.message, 'error');
-    }
-}
+        async function createPaper() {
+            var title = document.getElementById('newTitle').value.trim() || 'Untitled Paper';
+            var track = document.getElementById('newTrack').value;
+            if (!IS_LIVE) { toast('Supabase config missing', 'error'); return; }
+            var btn = document.getElementById('newCreateBtn');
+            btn.disabled = true; btn.textContent = 'Creating…';
+            try {
+                var res = await sb.from('papers').insert({
+                    student_id: USER.id,
+                    title: title,
+                    abstract: '',
+                    track: track,
+                    status: 'draft',
+                    content: '',
+                    word_count: 0
+                }).select().single();
+                if (res.error) throw res.error;
+                window.location.href = 'paper-editor.html?id=' + res.data.id;
+            } catch (e) {
+                toast('Error: ' + e.message, 'error');
+                btn.disabled = false; btn.textContent = 'Create & Open →';
+            }
+        }
 
-/* ═══ DELETE FLOW ═══ */
-function askDelete(event, paperId, paperTitle) {
-    event.stopPropagation();
-    event.preventDefault();
-    _pendingDeleteId = paperId;
-    document.getElementById('confirmPaperName').textContent = '"' + paperTitle + '"';
-    document.getElementById('confirmOverlay').classList.add('show');
-}
+        function delBtn(id) {
+            return '<button class="del-btn" title="Delete paper" onclick="event.stopPropagation();deletePaper(\'' + id + '\')">'
+                + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
+                + 'Delete</button>';
+        }
 
-function closeConfirm() {
-    document.getElementById('confirmOverlay').classList.remove('show');
-    _pendingDeleteId = null;
-}
+        async function deletePaper(id) {
+            if (!confirm('Are you sure you want to delete this paper? It will be permanently deleted and cannot be recovered.')) return;
+            try {
+                // child rows pehle (agar DB me ON DELETE CASCADE nahi hai)
+                try { await sb.from('paper_versions').delete().eq('paper_id', id); } catch (e) { }
+                try { await sb.from('paper_collaborators').delete().eq('paper_id', id); } catch (e) { }
+                var res = await sb.from('papers').delete().eq('id', id);
+                if (res.error) throw res.error;
 
-async function executeDelete() {
-    if (!_pendingDeleteId || !sb) return;
-    var btn = document.getElementById('confirmDeleteBtn');
-    btn.disabled = true;
-    btn.textContent = 'Deleting...';
+                MY_PAPERS = MY_PAPERS.filter(function (p) { return p.id !== id; });
+                document.getElementById('statTotal').textContent = MY_PAPERS.length;
+                document.getElementById('statDraft').textContent = MY_PAPERS.filter(function (p) { return (p.status || 'draft') === 'draft'; }).length;
+                document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
+                document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
+                renderMentorBanner();
+                render();
+                toast('Paper deleted ✓', 'success');
+            } catch (e) { toast('Delete error: ' + e.message, 'error'); }
+        }
 
-    try {
-        var result = await sb.from('papers')
-            .delete()
-            .eq('id', _pendingDeleteId)
-            .eq('student_id', USER.id);
+        function openPaper(id) { window.location.href = 'paper-editor.html?id=' + id; }
+        function doLogout() { localStorage.removeItem('sc_user'); sessionStorage.removeItem('sc_user'); window.location.href = 'index.html'; }
 
-        if (result.error) throw result.error;
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNewModal(); });
 
-        toast('Paper deleted', 'success');
-        closeConfirm();
-        await loadPapers();
-    } catch (e) {
-        toast('Delete failed: ' + e.message, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Yes, Delete';
-    }
-}
-
-document.getElementById('confirmOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeConfirm();
-});
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && document.getElementById('confirmOverlay').classList.contains('show')) {
-        closeConfirm();
-    }
-});
-
-/* ─── LOGOUT ─── */
-function doLogout() {
-    sessionStorage.removeItem('sc_user');
-    window.location.href = 'index.html';
-}
-
-/* ─── LOAD ─── */
-loadPapers();
-</script>
+        loadPapers();
+    </script>
 
 </body>
+
 </html>

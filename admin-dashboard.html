@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard · Scholarly Compass</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="dash-admin">
+
+    <nav class="dash-top">
+        <div class="container">
+            <div class="dash-top-inner">
+                <a href="#" class="brand">
+                    <div class="brand-box"><img
+                            src="https://fr1ekw4xx.tribe.junction.express/uploads/2025/05-May/29-Thu/sm/header-icon_6838241632ce3.png"
+                            alt="" style="width: 40px; height: 40px;"></div>
+                    <div>
+                        <div class="brand-name">Peak Potentia</div>
+                        <span class="brand-sub" id="brandSub">Admin </span>
+                    </div>
+                </a>
+                <div class="dash-user">
+                    <div class="dash-avatar" id="userAv">—</div>
+                    <div>
+                        <div class="dash-uname" id="userName">—</div>
+                        <div class="dash-uid" id="userId">—</div>
+                    </div>
+                    <button class="logout-btn" onclick="doLogout()">Logout</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dash-body">
+        <div class="dash-welcome">
+            <h1>Welcome, <em id="welcomeName">Admin</em></h1>
+            <p>View the entire system here — records of students, writers, papers, and every edit.</p>
+        </div>
+
+        <div class="stats-bar" id="statsBar">
+            <div class="stat-card">
+                <div class="label">Students</div>
+                <div class="num" id="stStudents">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Writers</div>
+                <div class="num" id="stWriters">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Papers</div>
+                <div class="num" id="stPapers">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Approved</div>
+                <div class="num" id="stApproved">—</div>
+            </div>
+            <div class="stat-card accent">
+                <div class="label">Pending Approvals</div>
+                <div class="num" id="stPending">—</div>
+            </div>
+            <div class="stat-card">
+                <div class="label">Total Edits</div>
+                <div class="num" id="stEdits">—</div>
+            </div>
+        </div>
+
+        <div class="tab-row">
+            <div class="tab active" data-panel="papers" onclick="switchTab(this)">All Papers</div>
+            <div class="tab" data-panel="writers" onclick="switchTab(this)">Writers &amp; Students</div>
+            <div class="tab" data-panel="edits" onclick="switchTab(this)">Recent Edits</div>
+            <div class="tab" data-panel="people" onclick="switchTab(this)">People</div>
+        </div>
+
+        <div class="panel active" id="panel-papers">
+            <div id="papersBox">
+                <div class="loading">Loading papers…</div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-writers">
+            <div id="writersBox">
+                <div class="loading">Loading…</div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-edits">
+            <!-- <p class="note">Har save par ek snapshot banta hai. Yahan latest edits — kis ne, kab.</p> -->
+            <div class="card-wrap" id="editsBox">
+                <div class="loading">Loading…</div>
+            </div>
+        </div>
+
+        <div class="panel" id="panel-people">
+            <!-- <p class="note" id="peopleNote">Role badlo / registration approve karo.</p> -->
+            <div id="peopleBox">
+                <div class="loading">Loading…</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ───── WRITER DETAIL MODAL ───── -->
+    <div class="tm-overlay" id="writerModal" onclick="writerModalBg(event)">
+        <div class="tm-box">
+            <div class="tm-head">
+                <div>
+                    <h2 id="tmName">Writer</h2>
+                    <div class="tm-sub" id="tmUser">@—</div>
+                </div>
+                <button class="tm-close" onclick="closeWriterModal()">×</button>
+            </div>
+            <div class="tm-stats" id="tmStats"></div>
+            <div class="tm-body" id="tmBody"></div>
+        </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        'use strict';
+
+        var SUPABASE_URL = 'https://uxhltsmddtuiqoadhdfd.supabase.co';
+        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aGx0c21kZHR1aXFvYWRoZGZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc2NDIsImV4cCI6MjA5NTAwMzY0Mn0.oKwtLMYhOpj_z4W-G9aEe1kmp9_q6sLDl273dQLBfbw';
+        var IS_LIVE = SUPABASE_URL && SUPABASE_URL.indexOf('https://') === 0;
+        var sb = IS_LIVE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+
+        /* Session: pehle is tab ka apna (sessionStorage), phir localStorage fallback.
+           Isse doosri tab ke login/logout se ye tab nahi hilegi (refresh-safe). */
+        function loadSession() {
+            var raw = sessionStorage.getItem('sc_user') || localStorage.getItem('sc_user');
+            if (!raw) return null;
+            try { var u = JSON.parse(raw); sessionStorage.setItem('sc_user', raw); return u; }
+            catch (e) { return null; }
+        }
+        var USER = loadSession();
+        if (!USER || !USER.id) {
+            window.location.href = 'index.html';
+        }
+        var IS_FULL_ADMIN = USER && USER.role === 'admin';    // role-change / approve / assign / delete sirf full admin
+        var IS_CO_ADMIN = USER && USER.role === 'co_admin'; // co-admin = sirf papers/essay dekho + edit karo
+        var CAN_ASSIGN = IS_FULL_ADMIN;                    // writer assign sirf full admin
+        var CAN_APPROVE = IS_FULL_ADMIN || IS_CO_ADMIN;    // approve/final → admin aur co-admin dono
+
+        function initials(n) { return (n || 'A').split(' ').map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
+        function fmtWhen(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
+        function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function roleBadge(r) { var l = r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; return '<span class="role-badge role-' + (r || 'student') + '">' + l + '</span>'; }
+        function roleName(r) { return r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; }
+
+        document.getElementById('userName').textContent = USER.full_name;
+        document.getElementById('userId').textContent = '@' + USER.username;
+        document.getElementById('userAv').textContent = initials(USER.full_name);
+        document.getElementById('welcomeName').textContent = USER.full_name.split(' ')[0];
+        if (IS_CO_ADMIN) {
+            document.getElementById('brandSub').textContent = 'Co-Admin Console';
+            // Co-admin ko sirf papers/essays dikhane hai — baaki sab hide
+            var _sbar = document.getElementById('statsBar'); if (_sbar) _sbar.style.display = 'none';
+            document.querySelectorAll('.tab').forEach(function (t) {
+                if (t.getAttribute('data-panel') !== 'papers') t.style.display = 'none';
+            });
+            var _wsub = document.querySelector('.dash-welcome p');
+            if (_wsub) _wsub.textContent = 'Only completed papers are shown here. Tick "Final" to approve a paper.';
+        }
+
+        var _tt;
+        function toast(msg, type) { type = type || ''; var el = document.getElementById('toast'); el.textContent = msg; el.className = 'show ' + type; clearTimeout(_tt); _tt = setTimeout(function () { el.className = ''; }, 3000); }
+
+        function switchTab(el) {
+            document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+            el.classList.add('active');
+            var p = el.getAttribute('data-panel');
+            document.querySelectorAll('.panel').forEach(function (x) { x.classList.remove('active'); });
+            document.getElementById('panel-' + p).classList.add('active');
+        }
+
+        /* Data holders */
+        var REGS = [], PAPERS = [], COLLABS = [], VERSIONS = [], WRITERS = [];
+        var regMap = {}; // id -> reg
+
+        async function loadAll() {
+            if (!IS_LIVE) { toast('Supabase config missing', 'error'); return; }
+            try {
+                var r1 = await sb.from('registrations').select('id, full_name, username, email, role, status, created_at').order('created_at', { ascending: false });
+                if (r1.error) throw r1.error;
+                REGS = r1.data || [];
+                regMap = {};
+                REGS.forEach(function (r) { regMap[r.id] = r; });
+                WRITERS = REGS.filter(function (r) { return r.role === 'writer'; });
+
+                var r2 = await sb.from('papers')
+                    .select('*, registrations:student_id(full_name, username)')
+                    .order('updated_at', { ascending: false });
+                if (r2.error) throw r2.error;
+                PAPERS = r2.data || [];
+
+                var r3 = await sb.from('paper_collaborators').select('paper_id, judge_id');
+                COLLABS = (r3 && !r3.error) ? (r3.data || []) : [];
+
+                var r4 = await sb.from('paper_versions')
+                    .select('id, paper_id, editor_name, editor_role, change_note, word_count, created_at, papers:paper_id(title)')
+                    .order('created_at', { ascending: false }).limit(60);
+                VERSIONS = (r4 && !r4.error) ? (r4.data || []) : [];
+
+                renderStats();
+                renderPapers();
+                renderWriters();
+                renderEdits();
+                renderPeople();
+            } catch (e) {
+                document.getElementById('papersBox').innerHTML = '<div class="loading">Error: ' + e.message + '</div>';
+            }
+        }
+
+        function isWriterRole(r) { return r === 'writer'; }
+
+        function renderStats() {
+            var students = REGS.filter(function (r) { return r.role === 'student'; }).length;
+            var writers = REGS.filter(function (r) { return isWriterRole(r.role); }).length;
+            var pending = REGS.filter(function (r) { return r.status === 'pending'; }).length;
+            var approved = PAPERS.filter(function (p) { return p.approved; }).length;
+            document.getElementById('stStudents').textContent = students;
+            document.getElementById('stWriters').textContent = writers;
+            document.getElementById('stPapers').textContent = PAPERS.length;
+            var _appr = document.getElementById('stApproved'); if (_appr) _appr.textContent = approved;
+            document.getElementById('stPending').textContent = pending;
+            document.getElementById('stEdits').textContent = VERSIONS.length >= 60 ? '60+' : VERSIONS.length;
+        }
+
+        /* paper_id -> [writer reg objects] */
+        function writersForPaper(pid) {
+            var out = [];
+            COLLABS.forEach(function (c) {
+                if (c.paper_id === pid) { var t = regMap[c.judge_id]; if (t) out.push(t); }
+            });
+            return out;
+        }
+
+        /* ─── APPROVAL CELL (badge + Final checkbox) ─── */
+        function approvalCell(p) {
+            var isApproved = !!p.approved;
+            var badge = isApproved
+                ? '<span class="pstatus approved">approved ✓</span>'
+                : '<span class="psub">not approved</span>';
+            var meta = (isApproved && p.approved_by)
+                ? '<div class="feed-time">by ' + esc(p.approved_by) + (p.approved_at ? ' · ' + fmtWhen(p.approved_at) : '') + '</div>'
+                : '';
+            // checkbox sirf completed paper par, aur sirf admin/co-admin ko
+            var canToggle = CAN_APPROVE && (p.status || '') === 'completed';
+            var control = '';
+            if (canToggle) {
+                control = '<label style="display:inline-flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;margin-top:5px;" onclick="event.stopPropagation();">'
+                    + '<input type="checkbox" style="cursor:pointer;width:15px;height:15px;" ' + (isApproved ? 'checked' : '')
+                    + ' onchange="event.stopPropagation();toggleApprove(\'' + p.id + '\', this.checked)"> Final</label>';
+            }
+            return badge + meta + control;
+        }
+
+        async function toggleApprove(paperId, makeApproved) {
+            if (!CAN_APPROVE) return;
+            try {
+                var patch = makeApproved
+                    ? { approved: true, approved_at: new Date().toISOString(), approved_by: USER.full_name }
+                    : { approved: false, approved_at: null, approved_by: null };
+                var res = await sb.from('papers').update(patch).eq('id', paperId);
+                if (res.error) throw res.error;
+                for (var i = 0; i < PAPERS.length; i++) {
+                    if (PAPERS[i].id === paperId) {
+                        PAPERS[i].approved = makeApproved;
+                        PAPERS[i].approved_at = patch.approved_at;
+                        PAPERS[i].approved_by = patch.approved_by;
+                        break;
+                    }
+                }
+                toast(makeApproved ? 'Paper approved ✓' : 'Approval removed', 'success');
+                renderStats();
+                renderPapers();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
+        function renderPapers() {
+            var box = document.getElementById('papersBox');
+            // Co-admin ko sirf 'completed' status wale papers dikhao; full admin ko saare
+            var rows = IS_CO_ADMIN
+                ? PAPERS.filter(function (p) { return (p.status || '') === 'completed'; })
+                : PAPERS;
+            if (!rows.length) {
+                box.innerHTML = '<div class="empty">' + (IS_CO_ADMIN ? 'No completed papers yet.' : 'No paper right now.') + '</div>';
+                return;
+            }
+            var h = IS_FULL_ADMIN ? '<p class="note">Every paper must be assigned to at least one writer before it becomes visible on the respective writer and student dashboards.</p>' : '';
+            h += '<div class="card-wrap"><table><thead><tr>'
+                + '<th>Title & Author</th><th>Track</th>'
+                + (IS_CO_ADMIN ? '' : '<th>Assigned writer(s)</th>')
+                + '<th>Status</th><th>Approved</th><th>Last edit</th><th></th>'
+                + '</tr></thead><tbody>';
+            rows.forEach(function (p) {
+                var lastEd = p.last_editor_name ? (roleBadge(p.last_editor_role) + ' ' + esc(p.last_editor_name) + '<div class="feed-time">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>') : '<span class="psub">—</span>';
+
+                // assigned writer chips + assign dropdown
+                var tCell = '';
+                writersForPaper(p.id).forEach(function (t) {
+                    tCell += '<span class="assigned-chip">' + esc(t.full_name)
+                        + (CAN_ASSIGN ? ' <a onclick="event.stopPropagation();unassignWriter(\'' + p.id + '\',\'' + t.id + '\')" title="Remove">✕</a>' : '')
+                        + '</span>';
+                });
+                if (!tCell) tCell = '<span class="psub">— none —</span>';
+                if (CAN_ASSIGN) {
+                    var opts = WRITERS.map(function (t) { return '<option value="' + t.id + '">' + esc(t.full_name) + '</option>'; }).join('');
+                    tCell += '<br><select class="assign-select" onclick="event.stopPropagation();" onchange="assignWriter(\'' + p.id + '\', this.value); this.selectedIndex=0;">'
+                        + '<option value="">+ Assign writer</option>' + opts + '</select>';
+                }
+
+                h += '<tr class="clickable" onclick="openPaper(\'' + p.id + '\')">'
+                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div><div class="psub">by ' + esc(p.registrations ? p.registrations.full_name : '—') + '</div></td>'
+                    + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
+                    + (IS_CO_ADMIN ? '' : '<td>' + tCell + '</td>')
+                    + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
+                    + '<td>' + approvalCell(p) + '</td>'
+                    + '<td>' + lastEd + '</td>'
+                    + '<td><div class="row-actions"><button class="edit-link" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit</button>' + (IS_FULL_ADMIN ? delBtn(p.id) : '') + '</div></td>'
+                    + '</tr>';
+            });
+            h += '</tbody></table></div>';
+            box.innerHTML = h;
+        }
+
+        /* ─── ASSIGN / UNASSIGN WRITER ─── */
+        async function assignWriter(paperId, writerId) {
+            if (!CAN_ASSIGN || !writerId) return;
+            if (COLLABS.some(function (c) { return c.paper_id === paperId && c.judge_id === writerId; })) {
+                toast('Ye writer pehle se assigned hai', 'error'); return;
+            }
+            try {
+                var res = await sb.from('paper_collaborators')
+                    .upsert({ paper_id: paperId, judge_id: writerId, can_edit: true }, { onConflict: 'paper_id,judge_id' });
+                if (res.error) throw res.error;
+                COLLABS.push({ paper_id: paperId, judge_id: writerId });
+                toast('Writer assigned ✓', 'success');
+                renderPapers(); renderWriters();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
+        async function unassignWriter(paperId, writerId) {
+            if (!CAN_ASSIGN) return;
+            if (!confirm('Is writer ko paper se hatayein?')) return;
+            try {
+                var res = await sb.from('paper_collaborators').delete().eq('paper_id', paperId).eq('judge_id', writerId);
+                if (res.error) throw res.error;
+                COLLABS = COLLABS.filter(function (c) { return !(c.paper_id === paperId && c.judge_id === writerId); });
+                toast('Hata diya', 'success');
+                renderPapers(); renderWriters();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
+        function renderWriters() {
+            var box = document.getElementById('writersBox');
+            var writers = REGS.filter(function (r) { return isWriterRole(r.role); });
+            // build map judge_id -> {students:Set, research, essay}
+            var map = {};
+            writers.forEach(function (t) { map[t.id] = { name: t.full_name, username: t.username, students: {}, research: 0, essay: 0 }; });
+            COLLABS.forEach(function (c) {
+                if (!map[c.judge_id]) return;
+                var paper = null;
+                for (var i = 0; i < PAPERS.length; i++) { if (PAPERS[i].id === c.paper_id) { paper = PAPERS[i]; break; } }
+                if (!paper) return;
+                if (paper.student_id) map[c.judge_id].students[paper.student_id] = true;
+                if (paper.track === 'essay') map[c.judge_id].essay++; else map[c.judge_id].research++;
+            });
+
+            if (!writers.length) { box.innerHTML = '<div class="empty">No writer yet. Appoint someone as the writer.</div>'; return; }
+
+            var h = '<p class="note">Click on any writers row to view their students and their (research/essay) papers.</p>';
+            h += '<div class="card-wrap"><table><thead><tr>'
+                + '<th>Writer</th><th>Students</th><th>Research papers</th><th>Essays</th><th></th>'
+                + '</tr></thead><tbody>';
+            writers.forEach(function (t) {
+                var m = map[t.id];
+                var sc = Object.keys(m.students).length;
+                h += '<tr class="clickable" onclick="openWriter(\'' + t.id + '\')">'
+                    + '<td><div class="ptitle">' + esc(t.full_name) + '</div><div class="psub">@' + esc(t.username || '—') + '</div></td>'
+                    + '<td><strong>' + sc + '</strong></td>'
+                    + '<td>' + m.research + '</td>'
+                    + '<td>' + m.essay + '</td>'
+                    + '<td style="text-align:right;"><span class="row-arrow">›</span></td>'
+                    + '</tr>';
+            });
+            h += '</tbody></table></div>';
+            h += '<p class="note">Note: The writer-student link for "All Papers" is established once a writer is assigned (or when the writer saves the paper themselves).</p>';
+            box.innerHTML = h;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           WRITER DETAIL MODAL — uske students + unke papers
+        ═══════════════════════════════════════════════════════════════ */
+        var TM = null;            // current writer detail data
+        var TM_VIEW = 'students'; // students | all | research | essay
+
+        function tmStat(n, l, view) {
+            return '<div class="tm-stat' + (TM_VIEW === view ? ' active' : '') + '" onclick="tmSetView(\'' + view + '\')">'
+                + '<div class="n">' + n + '</div><div class="l">' + l + '</div>'
+                + '</div>';
+        }
+
+        function openWriter(writerId) {
+            var t = regMap[writerId];
+            if (!t) return;
+
+            var paperIds = {};
+            COLLABS.forEach(function (c) { if (c.judge_id === writerId) paperIds[c.paper_id] = true; });
+            var papers = PAPERS.filter(function (p) { return paperIds[p.id]; });
+
+            var byStudent = {};
+            var research = 0, essay = 0;
+            papers.forEach(function (p) {
+                var sid = p.student_id || ('__' + p.id);
+                if (!byStudent[sid]) {
+                    var nm = (p.registrations && p.registrations.full_name) ? p.registrations.full_name
+                        : (regMap[sid] ? regMap[sid].full_name : 'Unknown student');
+                    var un = (p.registrations && p.registrations.username) ? p.registrations.username
+                        : (regMap[sid] ? regMap[sid].username : '');
+                    byStudent[sid] = { name: nm, username: un, papers: [] };
+                }
+                byStudent[sid].papers.push(p);
+                if (p.track === 'essay') essay++; else research++;
+            });
+
+            TM = {
+                writer: t,
+                papers: papers,
+                byStudent: byStudent,
+                studentCount: Object.keys(byStudent).length,
+                research: research,
+                essay: essay
+            };
+            TM_VIEW = 'students'; // default: students dikhao
+
+            document.getElementById('tmName').textContent = t.full_name;
+            document.getElementById('tmUser').textContent = '@' + (t.username || '—');
+            renderTmStats();
+            renderTmBody();
+            document.getElementById('writerModal').classList.add('show');
+        }
+
+        function renderTmStats() {
+            if (!TM) return;
+            document.getElementById('tmStats').innerHTML =
+                tmStat(TM.studentCount, 'Students', 'students') +
+                tmStat(TM.papers.length, 'Total Papers', 'all') +
+                tmStat(TM.research, 'Research', 'research') +
+                tmStat(TM.essay, 'Essays', 'essay');
+        }
+
+        function tmSetView(view) {
+            TM_VIEW = view;
+            renderTmStats();
+            renderTmBody();
+        }
+
+        /* ek paper ka row — flat list me author (student) naam ke saath dikhane ke liye */
+        function tmPaperRow(p, withAuthor) {
+            var author = '';
+            if (withAuthor) {
+                var nm = (p.registrations && p.registrations.full_name) ? p.registrations.full_name : 'Unknown student';
+                author = '<div class="psub">by ' + esc(nm) + '</div>';
+            }
+            return '<div class="tm-paper" onclick="openPaper(\'' + p.id + '\')">'
+                + '<div><div class="tm-paper-title">' + esc(p.title || 'Untitled') + '</div>' + author + '</div>'
+                + '<div class="tm-paper-meta">'
+                + '<span class="tm-track">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span>'
+                + '<span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span>'
+                + '</div>'
+                + '</div>';
+        }
+
+        function renderTmBody() {
+            if (!TM) return;
+            var el = document.getElementById('tmBody');
+
+            if (!TM.papers.length) {
+                el.innerHTML = '<div class="tm-empty">No paper has been assigned to this writer yet..<br>Assign "All Papers" from then on.</div>';
+                return;
+            }
+
+            var body = '';
+
+            if (TM_VIEW === 'students') {
+                // STUDENTS → sirf naam (papers nahi)
+                var sids = Object.keys(TM.byStudent);
+                if (!sids.length) {
+                    body = '<div class="tm-empty">No students.</div>';
+                } else {
+                    body = '<div class="tm-name-list">';
+                    sids.forEach(function (sid) {
+                        var s = TM.byStudent[sid];
+                        body += '<div class="tm-name-row">'
+                            + '<span class="tm-name-av">' + initials(s.name) + '</span>'
+                            + '<span class="tm-name-txt">' + esc(s.name) + (s.username ? '<span class="psub">@' + esc(s.username) + '</span>' : '') + '</span>'
+                            + '</div>';
+                    });
+                    body += '</div>';
+                }
+            } else {
+                // TOTAL PAPERS / RESEARCH / ESSAY → flat list (author naam ke saath)
+                var list = TM.papers;
+                if (TM_VIEW === 'research') list = TM.papers.filter(function (p) { return p.track !== 'essay'; });
+                else if (TM_VIEW === 'essay') list = TM.papers.filter(function (p) { return p.track === 'essay'; });
+
+                if (!list.length) {
+                    body = '<div class="tm-empty">There is nothing in this category.</div>';
+                } else {
+                    body = '<div class="tm-student">';
+                    list.forEach(function (p) { body += tmPaperRow(p, true); });
+                    body += '</div>';
+                }
+            }
+            el.innerHTML = body;
+        }
+        function closeWriterModal() { document.getElementById('writerModal').classList.remove('show'); }
+        function writerModalBg(e) { if (e.target && e.target.id === 'writerModal') closeWriterModal(); }
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeWriterModal(); });
+
+        function renderEdits() {
+            var box = document.getElementById('editsBox');
+            if (!VERSIONS.length) { box.innerHTML = '<div class="empty">No edit records yet.</div>'; return; }
+            var h = '';
+            VERSIONS.forEach(function (v) {
+                var ptitle = v.papers ? v.papers.title : 'a paper';
+                h += '<div class="feed-item"><div class="feed-dot" style="background:' + dotColor(v.editor_role) + '"></div>'
+                    + '<div><div class="feed-text">' + roleBadge(v.editor_role) + ' <strong>' + esc(v.editor_name || 'Someone') + '</strong> edited <em>' + esc(ptitle || 'a paper') + '</em>'
+                    + (v.change_note ? ' — ' + esc(v.change_note) : '') + ' (' + (v.word_count || 0) + ' words)</div>'
+                    + '<div class="feed-time">' + fmtWhen(v.created_at) + '</div></div></div>';
+            });
+            box.innerHTML = h;
+        }
+        function dotColor(r) { return r === 'admin' ? '#8b2e2e' : r === 'co_admin' ? '#2a6b40' : r === 'writer' ? '#c9a05a' : '#4a6a86'; }
+
+        function renderPeople() {
+            var box = document.getElementById('peopleBox');
+            if (!REGS.length) { box.innerHTML = '<div class="empty">No registration.</div>'; return; }
+            var roles = ['student', 'writer', 'co_admin', 'admin'];
+            var h = '<div class="card-wrap"><table><thead><tr>'
+                + '<th>Name</th><th>Username</th><th>Role</th><th>Status</th>'
+                + (IS_FULL_ADMIN ? '<th>Actions</th>' : '')
+                + '</tr></thead><tbody>';
+            REGS.forEach(function (r) {
+                h += '<tr>'
+                    + '<td><div class="ptitle" style="font-size:1rem">' + esc(r.full_name) + '</div><div class="psub">' + esc(r.email || '') + '</div></td>'
+                    + '<td><span class="psub">@' + esc(r.username || '—') + '</span></td>'
+                    + '<td>' + roleBadge(r.role) + '</td>'
+                    + '<td><span class="pstatus ' + (r.status || 'pending') + '">' + (r.status || 'pending') + '</span></td>';
+                if (IS_FULL_ADMIN) {
+                    var opts = roles.map(function (rr) { var sel = (r.role === rr) ? ' selected' : ''; return '<option value="' + rr + '"' + sel + '>' + roleName(rr) + '</option>'; }).join('');
+                    h += '<td><select class="role-select" onchange="changeRole(\'' + r.id + '\', this.value)">' + opts + '</select> ';
+                    if (r.status !== 'approved') h += '<button class="mini-btn" onclick="approveReg(\'' + r.id + '\')">Approve</button>';
+                    h += '</td>';
+                }
+                h += '</tr>';
+            });
+            h += '</tbody></table></div>';
+            box.innerHTML = h;
+        }
+
+        async function changeRole(id, role) {
+            if (!IS_FULL_ADMIN) return;
+            try {
+                var res = await sb.from('registrations').update({ role: role }).eq('id', id);
+                if (res.error) throw res.error;
+                var r = regMap[id]; if (r) r.role = role;
+                WRITERS = REGS.filter(function (x) { return x.role === 'writer'; });
+                toast('Role updated → ' + roleName(role), 'success');
+                renderStats(); renderWriters(); renderPapers();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
+        async function approveReg(id) {
+            if (!IS_FULL_ADMIN) return;
+            try {
+                var res = await sb.from('registrations').update({ status: 'approved', approved_at: new Date().toISOString() }).eq('id', id);
+                if (res.error) throw res.error;
+                var r = regMap[id]; if (r) r.status = 'approved';
+                toast('Approved ✓', 'success');
+                renderStats(); renderPeople();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
+        function delBtn(id) {
+            return '<button class="del-btn" title="Delete paper" onclick="event.stopPropagation();deletePaper(\'' + id + '\')">'
+                + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
+                + 'Delete</button>';
+        }
+
+        async function deletePaper(id) {
+            if (!confirm('Are you sure you want to delete this paper? It will be permanently deleted.')) return;
+            try {
+                try { await sb.from('paper_versions').delete().eq('paper_id', id); } catch (e) { }
+                try { await sb.from('paper_collaborators').delete().eq('paper_id', id); } catch (e) { }
+                var res = await sb.from('papers').delete().eq('id', id);
+                if (res.error) throw res.error;
+
+                PAPERS = PAPERS.filter(function (p) { return p.id !== id; });
+                COLLABS = COLLABS.filter(function (c) { return c.paper_id !== id; });
+                VERSIONS = VERSIONS.filter(function (v) { return v.paper_id !== id; });
+                renderStats(); renderPapers(); renderWriters(); renderEdits();
+                toast('Paper deleted ✓', 'success');
+            } catch (e) { toast('Delete error: ' + e.message, 'error'); }
+        }
+
+        function openPaper(id) { window.location.href = 'paper-editor.html?id=' + id; }
+        function doLogout() { localStorage.removeItem('sc_user'); sessionStorage.removeItem('sc_user'); window.location.href = 'index.html'; }
+
+        loadAll();
+    </script>
+
+</body>
+
+</html>

@@ -39,58 +39,67 @@ try {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   SESSION + PAPER ID + JUDGE MODE DETECTION
+   SESSION  (per-tab — dashboards jaisा hi: pehle sessionStorage,
+   phir localStorage fallback, aur result ko sessionStorage me pin.
+   Isse doosri tab ka (alag role ka) localStorage is tab ko nahi
+   badlega — warna "Back to Dashboard" galat role ke dashboard par
+   chala jaata tha, ya editor galat role me khulta tha.)
 ═══════════════════════════════════════════════════════════════ */
-var USER = null;
-try {
-    var raw = sessionStorage.getItem('sc_user');
-    if (raw) USER = JSON.parse(raw);
-} catch (e) {}
+function loadSession() {
+    var raw = sessionStorage.getItem('sc_user') || localStorage.getItem('sc_user');
+    if (!raw) return null;
+    try { var u = JSON.parse(raw); sessionStorage.setItem('sc_user', raw); return u; }
+    catch (e) { return null; }
+}
+var USER = loadSession();
 
 if (!USER || !USER.id) {
     window.location.href = 'index.html';
 }
 
+/* Privileged = student ke alawa sab (writer / admin / co_admin) */
+var PRIV = USER && (USER.role === 'admin' || USER.role === 'co_admin' ||
+                    USER.role === 'writer');
+var IS_WRITER = USER && (USER.role === 'writer');
+
+function dashFor(role) {
+    if (role === 'admin' || role === 'co_admin') return 'admin-dashboard.html';
+    if (role === 'writer') return 'writer-dashboard.html';
+    return 'student-dashboard.html';
+}
+
 var urlParams = new URLSearchParams(window.location.search);
 var PAPER_ID = urlParams.get('id');
-var IS_JUDGE_MODE = urlParams.get('judge') === '1';
+var BACK_URL = dashFor(USER.role);
 
 if (!PAPER_ID) {
-    window.location.href = 'student-dashboard.html';
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   🎯 BACK BUTTON FIX
-   ───────────────────────────────────────────────────────────────
-   Agar judge/admin mode hai (URL mein ?judge=1) toh
-   back button judge-dashboard.html pe le jayega.
-   Warna student-dashboard.html pe.
-═══════════════════════════════════════════════════════════════ */
-var BACK_URL = IS_JUDGE_MODE ? 'judge-dashboard.html' : 'student-dashboard.html';
-
-// Update top bar ka back link
-var backLink = document.getElementById('edBackLink');
-if (backLink) {
-    backLink.href = BACK_URL;
-    console.log('[Paper Editor] Back URL set to: ' + BACK_URL);
-}
-
-// Judge mode badge dikhao
-if (IS_JUDGE_MODE) {
-    var badge = document.getElementById('judgeBadge');
-    if (badge) badge.classList.add('show');
-}
-
-// Global function jo error overlay ke back button use karta hai
-function goBackToDashboard() {
     window.location.href = BACK_URL;
 }
+
+/* Back button + badge */
+var backLink = document.getElementById('edBackLink');
+if (backLink) backLink.href = BACK_URL;
+
+if (PRIV) {
+    var badge = document.getElementById('editBadge');
+    if (badge) {
+        var roleLabel = USER.role === 'admin' ? 'Admin' :
+                        USER.role === 'co_admin' ? 'Co-Admin' : 'Writer';
+        badge.textContent = roleLabel + ' Edit Mode';
+        badge.classList.add('show');
+    }
+}
+
+function goBackToDashboard() { window.location.href = BACK_URL; }
 
 
 var PAPER = null;
 var _isLoading = true;
 var _saveTimer = null;
-var _lastSavedContent = '';
+var _lastSavedContent = '';   // papers table me jo current hai
+var _lastVersionContent = ''; // last snapshot ka content
+var _lastVersionTime = 0;     // last snapshot kab bana (ms)
+var _versions = [];           // loaded history list
 var _selectedImg = null;
 
 /* ─── TOAST ─── */
@@ -105,8 +114,18 @@ function toast(msg, type) {
     _tt = setTimeout(function() { el.className = ''; }, 3000);
 }
 
+function fmtWhen(d) {
+    if (!d) return '—';
+    try {
+        return new Date(d).toLocaleString('en-IN', {
+            day: 'numeric', month: 'short', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch (e) { return d; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
-   QUILL EDITOR — clean version (no broken third-party modules)
+   QUILL EDITOR
 ═══════════════════════════════════════════════════════════════ */
 var quill = null;
 try {
@@ -126,11 +145,7 @@ try {
                         ['link', 'image'],
                         ['clean']
                     ],
-                    handlers: {
-                        image: function() {
-                            insertImage(this.quill);
-                        }
-                    }
+                    handlers: { image: function() { insertImage(this.quill); } }
                 }
             }
         });
@@ -140,22 +155,16 @@ try {
     showCriticalError('Editor init failed', e.message);
 }
 
-/* ─── IMAGE INSERT (file picker → base64 embed) ─── */
+/* ─── IMAGE INSERT ─── */
 function insertImage(quillInstance) {
     var input = document.createElement('input');
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
     input.click();
-
     input.onchange = function() {
         var file = input.files[0];
         if (!file) return;
-
-        if (file.size > 5 * 1024 * 1024) {
-            toast('Image too large! Max 5MB allowed.', 'error');
-            return;
-        }
-
+        if (file.size > 5 * 1024 * 1024) { toast('Image too large! Max 5MB allowed.', 'error'); return; }
         var reader = new FileReader();
         reader.onload = function(e) {
             var range = quillInstance.getSelection(true);
@@ -163,97 +172,62 @@ function insertImage(quillInstance) {
             quillInstance.setSelection(range.index + 1);
             toast('Image inserted! Click on it to resize.', 'success');
         };
-        reader.onerror = function() {
-            toast('Failed to read image', 'error');
-        };
+        reader.onerror = function() { toast('Failed to read image', 'error'); };
         reader.readAsDataURL(file);
     };
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   CUSTOM IMAGE RESIZE — click image, show toolbar, pick size
-═══════════════════════════════════════════════════════════════ */
+/* ─── IMAGE RESIZE ─── */
 if (quill) {
     quill.root.addEventListener('click', function(e) {
-        if (e.target && e.target.tagName === 'IMG') {
-            selectImage(e.target);
-        } else {
-            deselectImage();
-        }
+        if (e.target && e.target.tagName === 'IMG') selectImage(e.target);
+        else deselectImage();
     });
-
     document.addEventListener('click', function(e) {
         var toolbar = document.getElementById('imgResizeToolbar');
         var editor = quill.root;
-        if (!editor.contains(e.target) && toolbar && !toolbar.contains(e.target)) {
-            deselectImage();
-        }
+        if (!editor.contains(e.target) && toolbar && !toolbar.contains(e.target)) deselectImage();
     });
 }
-
 function selectImage(img) {
     var prev = quill.root.querySelectorAll('img.selected-img');
-    for (var i = 0; i < prev.length; i++) {
-        prev[i].classList.remove('selected-img');
-    }
-
+    for (var i = 0; i < prev.length; i++) prev[i].classList.remove('selected-img');
     _selectedImg = img;
     img.classList.add('selected-img');
-
     var toolbar = document.getElementById('imgResizeToolbar');
     if (!toolbar) return;
-
     var editorRect = document.querySelector('.editor-card').getBoundingClientRect();
     var imgRect = img.getBoundingClientRect();
-
     var top = imgRect.top - editorRect.top - 45;
     var left = imgRect.left - editorRect.left;
-
-    if (top < 5) {
-        top = imgRect.bottom - editorRect.top + 8;
-    }
-
+    if (top < 5) top = imgRect.bottom - editorRect.top + 8;
     toolbar.style.top = top + 'px';
     toolbar.style.left = left + 'px';
     toolbar.classList.add('show');
 }
-
 function deselectImage() {
-    if (_selectedImg) {
-        _selectedImg.classList.remove('selected-img');
-        _selectedImg = null;
-    }
+    if (_selectedImg) { _selectedImg.classList.remove('selected-img'); _selectedImg = null; }
     var toolbar = document.getElementById('imgResizeToolbar');
     if (toolbar) toolbar.classList.remove('show');
 }
-
 function resizeImg(percent) {
     if (!_selectedImg) return;
     _selectedImg.style.width = percent + '%';
     _selectedImg.style.height = 'auto';
     _selectedImg.setAttribute('width', percent + '%');
-
-    setTimeout(function() {
-        if (_selectedImg) selectImage(_selectedImg);
-    }, 50);
-
+    setTimeout(function() { if (_selectedImg) selectImage(_selectedImg); }, 50);
     scheduleSave();
     toast('Image resized to ' + percent + '%', 'success');
 }
-
 function customResize() {
     if (!_selectedImg) return;
     var current = _selectedImg.style.width || '100%';
     var input = prompt('Enter image width (in percentage, e.g., 40):', current.replace('%', ''));
     if (input === null) return;
     var num = parseInt(input, 10);
-    if (isNaN(num) || num < 5 || num > 100) {
-        toast('Please enter a number between 5 and 100', 'error');
-        return;
-    }
+    if (isNaN(num) || num < 5 || num > 100) { toast('Please enter a number between 5 and 100', 'error'); return; }
     resizeImg(num);
 }
-
 function deleteImg() {
     if (!_selectedImg) return;
     if (!confirm('Delete this image?')) return;
@@ -270,7 +244,6 @@ function updateCounts() {
     var words = text ? text.split(/\s+/).filter(function(w){ return w.length; }).length : 0;
     var chars = text.length;
     var minutes = Math.max(1, Math.ceil(words / 200));
-
     document.getElementById('wordCount').textContent = words;
     document.getElementById('charCount').textContent = chars;
     document.getElementById('readTime').textContent = minutes + ' min';
@@ -286,30 +259,18 @@ function setStatus(type, text) {
 
 /* ═══════════════════════════════════════════════════════════════
    LOAD PAPER
-   Judge/admin mode mein student_id check skip karte hain
-   (judge sab papers dekh aur edit kar sakta hai)
+   - student: sirf apna paper
+   - writer/admin/co_admin: koi bhi paper edit kar sakta hai
 ═══════════════════════════════════════════════════════════════ */
 async function loadPaper() {
-    if (!sb) {
-        showCriticalError('Database not connected', 'Supabase client not initialized.');
-        return;
-    }
-
+    if (!sb) { showCriticalError('Database not connected', 'Supabase client not initialized.'); return; }
     try {
         var query = sb.from('papers').select('*').eq('id', PAPER_ID);
-        if (!IS_JUDGE_MODE) {
-            query = query.eq('student_id', USER.id);
-        }
+        if (!PRIV) query = query.eq('student_id', USER.id);
 
         var result = await query.maybeSingle();
-        if (result.error) {
-            showCriticalError('Database error', result.error.message);
-            return;
-        }
-        if (!result.data) {
-            showCriticalError('Paper not found', 'This paper does not exist or you do not have access.');
-            return;
-        }
+        if (result.error) { showCriticalError('Database error', result.error.message); return; }
+        if (!result.data) { showCriticalError('Paper not found', 'This paper does not exist or you do not have access.'); return; }
 
         PAPER = result.data;
         document.getElementById('docTitle').value = PAPER.title || '';
@@ -321,60 +282,89 @@ async function loadPaper() {
             quill.root.innerHTML = PAPER.content;
             _lastSavedContent = PAPER.content;
         }
+        _lastVersionContent = PAPER.content || '';
+        _lastVersionTime = 0; // pehla changed-save hamesha ek checkpoint banayega
         updateCounts();
 
         if (PAPER.updated_at) {
-            var d = new Date(PAPER.updated_at);
-            document.getElementById('lastSavedTime').textContent =
-                'Last saved: ' + d.toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+            document.getElementById('lastSavedTime').textContent = 'Last saved: ' + fmtWhen(PAPER.updated_at);
         }
 
         _isLoading = false;
         setStatus('saved', 'All changes saved');
+        loadVersions(); // history background me load kar lo
 
     } catch (e) {
         showCriticalError('Failed to load paper', e.message);
     }
 }
 
-/* ─── AUTO-SAVE ─── */
-async function autoSave() {
+/* ═══════════════════════════════════════════════════════════════
+   SAVE  (papers update + version snapshot + collaborator link)
+═══════════════════════════════════════════════════════════════ */
+async function doSave(isManual, note) {
     if (_isLoading || !PAPER || !sb || !quill) return;
 
-    var title = document.getElementById('docTitle').value.trim() || 'Untitled Paper';
+    var title    = document.getElementById('docTitle').value.trim() || 'Untitled Paper';
     var abstract = document.getElementById('docAbstract').value.trim();
-    var track = document.getElementById('docTrack').value;
-    var status = document.getElementById('docStatus').value;
-    var content = quill.root.innerHTML;
-    var words = updateCounts();
+    var track    = document.getElementById('docTrack').value;
+    var status   = document.getElementById('docStatus').value;
+    var content  = quill.root.innerHTML;
+    var words    = updateCounts();
+    var nowIso   = new Date().toISOString();
 
     setStatus('saving', 'Saving...');
 
     try {
         var result = await sb.from('papers').update({
-            title: title,
-            abstract: abstract,
-            track: track,
-            status: status,
-            content: content,
-            word_count: words,
-            updated_at: new Date().toISOString()
+            title: title, abstract: abstract, track: track, status: status,
+            content: content, word_count: words, updated_at: nowIso,
+            last_editor_name: USER.full_name,
+            last_editor_role: USER.role,
+            last_edited_at: nowIso
         }).eq('id', PAPER_ID);
-
         if (result.error) throw result.error;
 
         _lastSavedContent = content;
         setStatus('saved', 'All changes saved');
+        document.getElementById('lastSavedTime').textContent = 'Last saved: ' + fmtWhen(nowIso);
 
-        var now = new Date();
-        document.getElementById('lastSavedTime').textContent =
-            'Last saved: ' + now.toLocaleString('en-IN', { hour:'2-digit', minute:'2-digit' });
+        /* Writer ne edit kiya → use is paper ka collaborator bana do
+           (taaki admin dashboard "kis writer ke kitne students" dikha sake).
+           Note: paper_collaborators ka column DB me 'judge_id' hi hai — wo
+           bas ek column naam hai (writer ki id store karta hai), isliye chhoda hai. */
+        if (IS_WRITER) {
+            try {
+                await sb.from('paper_collaborators')
+                    .upsert({ paper_id: PAPER_ID, judge_id: USER.id, can_edit: true },
+                            { onConflict: 'paper_id,judge_id' });
+            } catch (ce) { /* non-critical */ }
+        }
+
+        /* VERSION SNAPSHOT — content badla ho, aur (manual ho ya 60s+ ho gaye ho) */
+        var changed = content !== _lastVersionContent;
+        var throttleOk = (Date.now() - _lastVersionTime) >= 60000;
+        if (changed && (isManual || throttleOk)) {
+            try {
+                await sb.from('paper_versions').insert({
+                    paper_id: PAPER_ID, title: title, abstract: abstract,
+                    content: content, track: track, word_count: words,
+                    editor_id: USER.id, editor_name: USER.full_name,
+                    editor_role: USER.role, change_note: note || null
+                });
+                _lastVersionContent = content;
+                _lastVersionTime = Date.now();
+                loadVersions(); // refresh history list
+            } catch (ve) { console.warn('version snapshot failed', ve); }
+        }
 
     } catch (e) {
         setStatus('error', 'Save failed');
         toast('Save error: ' + e.message, 'error');
     }
 }
+
+function autoSave() { return doSave(false, null); }
 
 function scheduleSave() {
     if (_isLoading) return;
@@ -383,32 +373,258 @@ function scheduleSave() {
 }
 
 if (quill) {
-    quill.on('text-change', function() {
-        scheduleSave();
-        updateCounts();
-    });
+    quill.on('text-change', function() { scheduleSave(); updateCounts(); });
 }
-
 ['docTitle', 'docAbstract', 'docTrack', 'docStatus'].forEach(function(id) {
     var el = document.getElementById(id);
-    if (el) {
-        el.addEventListener('input', scheduleSave);
-        el.addEventListener('change', scheduleSave);
-    }
+    if (el) { el.addEventListener('input', scheduleSave); el.addEventListener('change', scheduleSave); }
 });
 
 function manualSave() {
     clearTimeout(_saveTimer);
-    autoSave().then(function() { toast('Saved!', 'success'); });
+    doSave(true, null).then(function() { toast('Saved! Checkpoint created ✓', 'success'); });
 }
 
-window.addEventListener('beforeunload', function(e) {
-    if (quill && quill.root.innerHTML !== _lastSavedContent) {
-        autoSave();
-        e.preventDefault();
-        e.returnValue = '';
+/* Refresh par bina "leave site?" dialog ke ek silent save try karo */
+window.addEventListener('beforeunload', function() {
+    if (!_isLoading && quill && quill.root.innerHTML !== _lastSavedContent) {
+        try { autoSave(); } catch (e) {}
     }
 });
+
+/* ═══════════════════════════════════════════════════════════════
+   ⭐ VERSION HISTORY (Google-Docs jaisa)
+═══════════════════════════════════════════════════════════════ */
+function roleBadge(role) {
+    var cls = 'role-' + (role || 'student');
+    var label = role === 'admin' ? 'Admin' :
+                role === 'co_admin' ? 'Co-Admin' :
+                role === 'writer' ? 'Writer' : 'Student';
+    return '<span class="role-badge ' + cls + '">' + label + '</span>';
+}
+
+async function loadVersions() {
+    if (!sb || !PAPER_ID) return;
+    try {
+        var res = await sb.from('paper_versions')
+            .select('*')
+            .eq('paper_id', PAPER_ID)
+            .order('created_at', { ascending: false })
+            .limit(80);
+        if (res.error) throw res.error;
+        _versions = res.data || [];
+        renderVersions();
+    } catch (e) {
+        var list = document.getElementById('histList');
+        if (list) list.innerHTML = '<div class="hist-empty">History did not load: ' + e.message + '</div>';
+    }
+}
+
+function renderVersions() {
+    var list = document.getElementById('histList');
+    if (!list) return;
+    if (!_versions.length) {
+        list.innerHTML = '<div class="hist-empty">No saved version yet. Edit and press "Save" — every checkpoint will appear here.</div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < _versions.length; i++) {
+        var v = _versions[i];
+        var isLatest = (i === 0);
+        html += '<div class="hist-item">';
+        html +=   '<div class="hist-top">';
+        html +=     '<span class="hist-when">' + fmtWhen(v.created_at) + (isLatest ? ' · <em>latest</em>' : '') + '</span>';
+        html +=     '<span class="hist-words">' + (v.word_count || 0) + ' words</span>';
+        html +=   '</div>';
+        html +=   '<div class="hist-who">' + roleBadge(v.editor_role) + ' ' + escapeHtml(v.editor_name || 'Unknown') + '</div>';
+        if (v.change_note) html += '<div class="hist-note">' + escapeHtml(v.change_note) + '</div>';
+        html +=   '<div class="hist-actions">';
+        html +=     '<button onclick="previewVersion(\'' + v.id + '\')">Preview</button>';
+        html +=     '<button class="restore" onclick="restoreVersion(\'' + v.id + '\')">Restore</button>';
+        html +=   '</div>';
+        html += '</div>';
+    }
+    list.innerHTML = html;
+}
+
+function openHistory() {
+    document.getElementById('histOverlay').classList.add('show');
+    loadVersions();
+}
+function closeHistory() {
+    document.getElementById('histOverlay').classList.remove('show');
+}
+function closeHistoryBg(e) {
+    if (e.target && e.target.id === 'histOverlay') closeHistory();
+}
+
+function findVersion(id) {
+    for (var i = 0; i < _versions.length; i++) if (_versions[i].id === id) return _versions[i];
+    return null;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ⭐ DIFF (Google-Docs jaisा "kya change hua")
+   - deleted word  → background RED + strikethrough
+   - added word    → background GREEN
+   Plain text par word-level diff (LCS). Bahut bade doc par
+   line-level fallback (taaki browser slow na ho).
+═══════════════════════════════════════════════════════════════ */
+var DIFF_DEL_STYLE = 'background:#ffd6d6;color:#a4242b;text-decoration:line-through;border-radius:2px;padding:0 1px;';
+var DIFF_INS_STYLE = 'background:#caf5d6;color:#1c6b3a;text-decoration:none;border-radius:2px;padding:0 1px;';
+
+/* HTML → readable plain text (block tags ko newline bana ke) */
+function htmlToText(html) {
+    var s = html || '';
+    s = s.replace(/<\/(p|div|h[1-6]|li|blockquote|tr)>/gi, '\n');
+    s = s.replace(/<br\s*\/?>/gi, '\n');
+    var d = document.createElement('div');
+    d.innerHTML = s;
+    var txt = d.textContent || d.innerText || '';
+    return txt.replace(/\n{3,}/g, '\n\n').replace(/[ \t]+\n/g, '\n').trim();
+}
+
+/* generic LCS diff: do arrays → ops list {t:'eq'|'del'|'ins', v:token} */
+function lcsDiff(a, b) {
+    var n = a.length, m = b.length;
+    var dp = new Array(n + 1);
+    for (var i = 0; i <= n; i++) dp[i] = new Int32Array(m + 1);
+    for (var i = n - 1; i >= 0; i--) {
+        var dpi = dp[i], dpi1 = dp[i + 1];
+        for (var j = m - 1; j >= 0; j--) {
+            if (a[i] === b[j]) dpi[j] = dpi1[j + 1] + 1;
+            else dpi[j] = dpi1[j] >= dpi[j + 1] ? dpi1[j] : dpi[j + 1];
+        }
+    }
+    var ops = [], i = 0, j = 0;
+    while (i < n && j < m) {
+        if (a[i] === b[j]) { ops.push({ t: 'eq', v: a[i] }); i++; j++; }
+        else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ t: 'del', v: a[i] }); i++; }
+        else { ops.push({ t: 'ins', v: b[j] }); j++; }
+    }
+    while (i < n) { ops.push({ t: 'del', v: a[i] }); i++; }
+    while (j < m) { ops.push({ t: 'ins', v: b[j] }); j++; }
+    return ops;
+}
+
+/* ek token ko render karo (eq = normal, del = red, ins = green; whitespace highlight nahi) */
+function renderTok(t, v) {
+    if (t === 'eq') return escapeHtml(v);
+    if (/^\s+$/.test(v)) return escapeHtml(v);
+    if (t === 'del') return '<del style="' + DIFF_DEL_STYLE + '">' + escapeHtml(v) + '</del>';
+    return '<ins style="' + DIFF_INS_STYLE + '">' + escapeHtml(v) + '</ins>';
+}
+
+/* sirf ek BADLE HUE block (chhota) par word-by-word diff */
+/* Word-level diff jo sirf BADLE HUE words highlight karta hai.
+   Trick: pehle common PREFIX (jo shuru me same hai) aur common SUFFIX
+   (jo aakhir me same hai) ko hata do — wo plain dikhega. Sirf beech ka
+   chhota changed hissa LCS se diff hota hai. Isliye 3600-word paper me
+   bhi agar 3-4 word badle to sirf wahi red/green honge, baaki sab normal.
+   Aur ye fast hai kyunki LCS sirf chhote middle par chalta hai. */
+function diffWordsInline(oldText, newText) {
+    if (oldText === newText) return escapeHtml(oldText);
+    if (!oldText) return '<ins style="' + DIFF_INS_STYLE + '">' + escapeHtml(newText) + '</ins>';
+    if (!newText) return '<del style="' + DIFF_DEL_STYLE + '">' + escapeHtml(oldText) + '</del>';
+
+    var a = oldText.match(/\S+|\s+/g) || [];
+    var b = newText.match(/\S+|\s+/g) || [];
+    var n = a.length, m = b.length;
+
+    // common prefix
+    var s = 0;
+    while (s < n && s < m && a[s] === b[s]) s++;
+    // common suffix
+    var ea = n, eb = m;
+    while (ea > s && eb > s && a[ea - 1] === b[eb - 1]) { ea--; eb--; }
+
+    var out = '';
+    for (var p = 0; p < s; p++) out += escapeHtml(a[p]);          // prefix = plain
+
+    var midA = a.slice(s, ea), midB = b.slice(s, eb);             // sirf changed middle
+    if (midA.length * midB.length > 6000000) {
+        // bahut bada scattered change — middle ko seedha del+ins (rare)
+        if (midA.length) out += '<del style="' + DIFF_DEL_STYLE + '">' + escapeHtml(midA.join('')) + '</del>';
+        if (midB.length) out += '<ins style="' + DIFF_INS_STYLE + '">' + escapeHtml(midB.join('')) + '</ins>';
+    } else {
+        var ops = lcsDiff(midA, midB);
+        for (var k = 0; k < ops.length; k++) out += renderTok(ops[k].t, ops[k].v);
+    }
+
+    for (var q = ea; q < n; q++) out += escapeHtml(a[q]);         // suffix = plain
+    return out;
+}
+
+/* MAIN: dono versions ka plain text nikaal ke word-diff. */
+function buildDiffHtml(oldHtml, newHtml) {
+    return diffWordsInline(htmlToText(oldHtml), htmlToText(newHtml));
+}
+
+var _previewVer = null;
+function previewVersion(id) {
+    var v = findVersion(id);
+    if (!v) return;
+    _previewVer = v;
+    document.getElementById('previewMeta').innerHTML =
+        roleBadge(v.editor_role) + ' ' + escapeHtml(v.editor_name || 'Unknown') + ' · ' + fmtWhen(v.created_at);
+    document.getElementById('previewTitle').textContent = v.title || 'Untitled';
+
+    /* is version se theek pehle wala (purana) version dhoondo.
+       _versions list newest→oldest hai, isliye agla index = purana version. */
+    var idx = -1;
+    for (var i = 0; i < _versions.length; i++) { if (_versions[i].id === v.id) { idx = i; break; } }
+    var older = (idx >= 0 && idx < _versions.length - 1) ? _versions[idx + 1] : null;
+
+    var body = document.getElementById('previewBody');
+    var legend = '<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">'
+        + '<span style="' + DIFF_INS_STYLE + '">added</span>'
+        + '<span style="' + DIFF_DEL_STYLE + '">deleted</span>';
+
+    if (older) {
+        legend += '<span style="text-transform:none;letter-spacing:0;">vs ' + fmtWhen(older.created_at) + '</span></div>';
+        body.innerHTML = legend
+            + '<div style="white-space:pre-wrap;word-break:break-word;">' + buildDiffHtml(older.content || '', v.content || '') + '</div>';
+    } else {
+        /* sabse purana version — compare karne ko kuch nahi (sab kuch naya hai) */
+        legend += '<span style="text-transform:none;letter-spacing:0;">first version</span></div>';
+        body.innerHTML = legend
+            + '<div style="white-space:pre-wrap;word-break:break-word;">'
+            + buildDiffHtml('', v.content || '') + '</div>';
+    }
+    document.getElementById('previewOverlay').classList.add('show');
+}
+function closePreview() {
+    document.getElementById('previewOverlay').classList.remove('show');
+    _previewVer = null;
+}
+function restoreFromPreview() {
+    if (_previewVer) restoreVersion(_previewVer.id);
+}
+
+async function restoreVersion(id) {
+    var v = findVersion(id);
+    if (!v) return;
+    if (!confirm('Restore this version?\n\n' + (v.editor_name || '') + ' · ' + fmtWhen(v.created_at) +
+                 '\n\nThe current content will be saved to a new checkpoint, and then the old version will be loaded.')) return;
+
+    // pehle current ko ek checkpoint bana lo (taaki ye bhi history me safe rahe)
+    await doSave(true, 'Auto-checkpoint before restore');
+
+    // ab purana version editor me daalo
+    if (quill) quill.root.innerHTML = v.content || '';
+    document.getElementById('docTitle').value = v.title || '';
+    document.getElementById('docAbstract').value = v.abstract || '';
+    document.getElementById('docTrack').value = v.track || 'research';
+    updateCounts();
+    _lastVersionContent = ''; // force snapshot
+    _lastVersionTime = 0;
+
+    // restored version ko save + naya checkpoint
+    await doSave(true, 'Restored from ' + fmtWhen(v.created_at));
+    closePreview();
+    closeHistory();
+    toast('Version restored ✓', 'success');
+}
 
 /* ─── DOWNLOAD DROPDOWN ─── */
 function toggleDownload(e) {
@@ -422,11 +638,8 @@ document.addEventListener('click', function() {
 
 function escapeHtml(s) {
     if (!s) return '';
-    return String(s)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function buildPrintHtml() {
@@ -435,42 +648,34 @@ function buildPrintHtml() {
     var content = quill ? quill.root.innerHTML : '';
     var author = USER.full_name || 'Author';
     var date = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
-
     var html = '';
     html += '<div style="font-family: Georgia, serif; padding: 40px; color: #1c3a2b;">';
     html += '<div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #8b2e2e; padding-bottom: 20px;">';
-    html += '<div style="font-size: 11px; letter-spacing: 0.22em; color: #8b2e2e; text-transform: uppercase; margin-bottom: 10px;">Scholarly Compass &middot; 2026</div>';
+    html += '<div style="font-size: 11px; letter-spacing: 0.22em; color: #8b2e2e; text-transform: uppercase; margin-bottom: 10px;"> Peak Potentia &middot; 2026</div>';
     html += '<h1 style="font-size: 32px; font-weight: 500; margin: 0 0 10px 0; line-height: 1.2;">' + escapeHtml(title) + '</h1>';
     html += '<p style="font-size: 14px; color: #5a6b5e; margin: 0;">by ' + escapeHtml(author) + ' &middot; ' + date + '</p>';
     html += '</div>';
-
     if (abstract) {
         html += '<div style="font-style: italic; color: #5a6b5e; padding: 15px 20px; border-left: 3px solid #c9a05a; margin-bottom: 30px; font-size: 16px; line-height: 1.6;">';
         html += '<strong style="font-style: normal; color: #1c3a2b;">Abstract:</strong> ' + escapeHtml(abstract);
         html += '</div>';
     }
-
-    html += '<div style="font-size: 15px; line-height: 1.8;">' + content + '</div>';
-    html += '</div>';
+    html += '<div style="font-size: 15px; line-height: 1.8;">' + content + '</div></div>';
     return html;
 }
 
 function downloadPDF() {
     document.getElementById('downloadMenu').classList.remove('open');
     if (typeof html2pdf === 'undefined') { toast('PDF library not loaded', 'error'); return; }
-
     var title = document.getElementById('docTitle').value || 'Untitled';
     var wrapper = document.createElement('div');
     wrapper.innerHTML = buildPrintHtml();
-
     var opt = {
-        margin: 15,
-        filename: title.replace(/[^a-z0-9]/gi, '_') + '.pdf',
+        margin: 15, filename: title.replace(/[^a-z0-9]/gi, '_') + '.pdf',
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-
     toast('Generating PDF...', 'success');
     html2pdf().set(opt).from(wrapper).save()
         .then(function() { toast('PDF downloaded!', 'success'); })
@@ -481,50 +686,20 @@ async function downloadDOCX() {
     document.getElementById('downloadMenu').classList.remove('open');
     if (typeof window.docx === 'undefined') { toast('Word library not loaded', 'error'); return; }
     if (typeof window.saveAs === 'undefined') { toast('FileSaver not loaded', 'error'); return; }
-
     var title = document.getElementById('docTitle').value || 'Untitled';
     var abstract = document.getElementById('docAbstract').value || '';
     var author = USER.full_name || 'Author';
-
     try {
-        var Document = window.docx.Document;
-        var Packer = window.docx.Packer;
-        var Paragraph = window.docx.Paragraph;
-        var TextRun = window.docx.TextRun;
-        var HeadingLevel = window.docx.HeadingLevel;
-        var AlignmentType = window.docx.AlignmentType;
-
+        var Document = window.docx.Document, Packer = window.docx.Packer,
+            Paragraph = window.docx.Paragraph, TextRun = window.docx.TextRun,
+            HeadingLevel = window.docx.HeadingLevel, AlignmentType = window.docx.AlignmentType;
         var tempDiv = document.createElement('div');
         tempDiv.innerHTML = quill ? quill.root.innerHTML : '';
-
         var paragraphs = [];
-
-        paragraphs.push(new Paragraph({
-            children: [new TextRun({ text: title, bold: true, size: 36 })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 200 }
-        }));
-
+        paragraphs.push(new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 36 })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }));
         var dateStr = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
-        paragraphs.push(new Paragraph({
-            children: [new TextRun({
-                text: 'by ' + author + '  -  ' + dateStr,
-                italics: true, size: 22, color: '5a6b5e'
-            })],
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 400 }
-        }));
-
-        if (abstract) {
-            paragraphs.push(new Paragraph({
-                children: [
-                    new TextRun({ text: 'Abstract: ', bold: true, size: 24 }),
-                    new TextRun({ text: abstract, italics: true, size: 24, color: '5a6b5e' })
-                ],
-                spacing: { after: 300 }
-            }));
-        }
-
+        paragraphs.push(new Paragraph({ children: [new TextRun({ text: 'by ' + author + '  -  ' + dateStr, italics: true, size: 22, color: '5a6b5e' })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }));
+        if (abstract) paragraphs.push(new Paragraph({ children: [new TextRun({ text: 'Abstract: ', bold: true, size: 24 }), new TextRun({ text: abstract, italics: true, size: 24, color: '5a6b5e' })], spacing: { after: 300 } }));
         for (var i = 0; i < tempDiv.childNodes.length; i++) {
             var node = tempDiv.childNodes[i];
             if (node.nodeType !== 1) continue;
@@ -532,102 +707,40 @@ async function downloadDOCX() {
             var text = node.textContent.trim();
             var hasImage = node.querySelector && node.querySelector('img');
             if (!text && !hasImage) continue;
-
-            if (hasImage && !text) {
-                paragraphs.push(new Paragraph({
-                    children: [new TextRun({ text: '[Image]', italics: true, size: 20, color: '8aa0b8' })],
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 120 }
-                }));
-                continue;
-            }
-
-            if (tag === 'h1') {
-                paragraphs.push(new Paragraph({
-                    children: [new TextRun({ text: text, bold: true, size: 32 })],
-                    heading: HeadingLevel.HEADING_1,
-                    spacing: { before: 240, after: 120 }
-                }));
-            } else if (tag === 'h2') {
-                paragraphs.push(new Paragraph({
-                    children: [new TextRun({ text: text, bold: true, size: 28 })],
-                    heading: HeadingLevel.HEADING_2,
-                    spacing: { before: 200, after: 100 }
-                }));
-            } else if (tag === 'h3') {
-                paragraphs.push(new Paragraph({
-                    children: [new TextRun({ text: text, bold: true, size: 26 })],
-                    heading: HeadingLevel.HEADING_3,
-                    spacing: { before: 180, after: 100 }
-                }));
-            } else if (tag === 'ul' || tag === 'ol') {
-                var items = node.querySelectorAll('li');
-                for (var j = 0; j < items.length; j++) {
-                    paragraphs.push(new Paragraph({
-                        children: [new TextRun({ text: '• ' + items[j].textContent.trim(), size: 22 })],
-                        spacing: { after: 60 }
-                    }));
-                }
-            } else if (tag === 'blockquote') {
-                paragraphs.push(new Paragraph({
-                    children: [new TextRun({ text: text, italics: true, size: 22, color: '5a6b5e' })],
-                    indent: { left: 720 },
-                    spacing: { after: 120 }
-                }));
-            } else {
-                paragraphs.push(new Paragraph({
-                    children: [new TextRun({ text: text, size: 22 })],
-                    spacing: { after: 120 }
-                }));
-            }
+            if (hasImage && !text) { paragraphs.push(new Paragraph({ children: [new TextRun({ text: '[Image]', italics: true, size: 20, color: '8aa0b8' })], alignment: AlignmentType.CENTER, spacing: { after: 120 } })); continue; }
+            if (tag === 'h1') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
+            else if (tag === 'h2') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, bold: true, size: 28 })], heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
+            else if (tag === 'h3') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, bold: true, size: 26 })], heading: HeadingLevel.HEADING_3, spacing: { before: 180, after: 100 } }));
+            else if (tag === 'ul' || tag === 'ol') { var items = node.querySelectorAll('li'); for (var j = 0; j < items.length; j++) paragraphs.push(new Paragraph({ children: [new TextRun({ text: '• ' + items[j].textContent.trim(), size: 22 })], spacing: { after: 60 } })); }
+            else if (tag === 'blockquote') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, italics: true, size: 22, color: '5a6b5e' })], indent: { left: 720 }, spacing: { after: 120 } }));
+            else paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, size: 22 })], spacing: { after: 120 } }));
         }
-
         var doc = new Document({ sections: [{ children: paragraphs }] });
         var blob = await Packer.toBlob(doc);
         saveAs(blob, title.replace(/[^a-z0-9]/gi, '_') + '.docx');
         toast('Word file downloaded!', 'success');
-
-    } catch (e) {
-        toast('DOCX error: ' + e.message, 'error');
-    }
+    } catch (e) { toast('DOCX error: ' + e.message, 'error'); }
 }
 
 function downloadHTML() {
     document.getElementById('downloadMenu').classList.remove('open');
     if (typeof window.saveAs === 'undefined') { toast('FileSaver not loaded', 'error'); return; }
-
     var title = document.getElementById('docTitle').value || 'Untitled';
     var abstract = document.getElementById('docAbstract').value || '';
     var author = USER.full_name || 'Author';
     var date = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
     var content = quill ? quill.root.innerHTML : '';
-
     var css = 'body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:20px;color:#1c3a2b;line-height:1.8}';
-    css += 'h1{text-align:center;font-size:2.4rem}';
-    css += '.meta{text-align:center;color:#5a6b5e;margin-bottom:40px;border-bottom:2px solid #8b2e2e;padding-bottom:20px}';
-    css += '.abstract{font-style:italic;color:#5a6b5e;padding:15px 20px;border-left:3px solid #c9a05a;margin-bottom:30px}';
-    css += 'img{max-width:100%;height:auto;display:block;margin:1rem auto;border-radius:4px}';
-
-    var doc = '<!DOCTYPE html>\n';
-    doc += '<html><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>\n';
-    doc += '<style>' + css + '</style></head>\n';
-    doc += '<body>\n';
+    css += 'h1{text-align:center;font-size:2.4rem}.meta{text-align:center;color:#5a6b5e;margin-bottom:40px;border-bottom:2px solid #8b2e2e;padding-bottom:20px}';
+    css += '.abstract{font-style:italic;color:#5a6b5e;padding:15px 20px;border-left:3px solid #c9a05a;margin-bottom:30px}img{max-width:100%;height:auto;display:block;margin:1rem auto;border-radius:4px}';
+    var doc = '<!DOCTYPE html>\n<html><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>\n<style>' + css + '</style></head>\n<body>\n';
     doc += '<div class="meta"><h1>' + escapeHtml(title) + '</h1><p>by ' + escapeHtml(author) + ' &middot; ' + date + '</p></div>\n';
-
-    if (abstract) {
-        doc += '<div class="abstract"><strong>Abstract:</strong> ' + escapeHtml(abstract) + '</div>\n';
-    }
-
-    doc += content + '\n';
-    doc += '</body></html>';
-
+    if (abstract) doc += '<div class="abstract"><strong>Abstract:</strong> ' + escapeHtml(abstract) + '</div>\n';
+    doc += content + '\n</body></html>';
     var blob = new Blob([doc], { type: 'text/html' });
     saveAs(blob, title.replace(/[^a-z0-9]/gi, '_') + '.html');
     toast('HTML downloaded!', 'success');
 }
 
-if (sb && quill) {
-    loadPaper();
-}
-
+if (sb && quill) loadPaper();
 console.log('[Paper Editor] Setup complete');
