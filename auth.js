@@ -154,7 +154,7 @@ async function submitLogin() {
     try {
         const { data, error } = await sb.rpc('user_login', { p_username: username, p_password: password });
         if (error) { showAlert('login', '⚠ Error: ' + error.message); return; }
-        if (!data || !data.success) { showAlert('login', '⚠ ' + (data?.message || 'Galat credentials.')); return; }
+        if (!data || !data.success) { showAlert('login', '' + (data?.incorrect  || 'Incorrect credentials.')); return; }
 
         const user = {
             id: data.id, full_name: data.full_name, email: data.email,
