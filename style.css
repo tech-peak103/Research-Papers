@@ -129,7 +129,10 @@ body {
     overflow-x: hidden;
     margin: 0;
 }
-
+.container{
+padding-left: 15px;
+padding-right: 15px;
+}
 ul {
     list-style: none;
     padding: 0;
@@ -2471,7 +2474,7 @@ body.dash-student {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem;
 }
 
 .dash-student .dash-user {
@@ -2728,10 +2731,10 @@ body.dash-student {
 .dash-student .pstatus {
     font-family: var(--mono);
     font-size: 0.65rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    /* letter-spacing: 0.18em; */
+    /* text-transform: uppercase; */
     padding: 4px 10px;
-    border-radius: 12px;
+    /* border-radius: 12px; */
     font-weight: 600;
     display: inline-block;
     white-space: nowrap;
@@ -2772,10 +2775,10 @@ body.dash-student {
     background: rgba(201, 160, 90, .18);
     color: #8a6a2f;
     font-family: var(--mono);
-    font-size: 0.66rem;
-    letter-spacing: 0.08em;
+    font-size: 0.55rem;
+    /* letter-spacing: 0.08em; */
     padding: 3px 9px;
-    border-radius: 12px;
+    /* border-radius: 12px; */
     margin: 2px 4px 2px 0;
 }
 
@@ -3220,10 +3223,10 @@ body.dash-writer {
 .dash-writer .pstatus {
     font-family: var(--mono);
     font-size: 0.65rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    /* letter-spacing: 0.18em; */
+    /* text-transform: uppercase; */
     padding: 4px 10px;
-    border-radius: 12px;
+    /* border-radius: 12px; */
     font-weight: 600;
     display: inline-block;
 }
@@ -3329,11 +3332,11 @@ body.dash-writer {
 .dash-writer .role-badge {
     font-family: var(--mono);
     font-size: 0.6rem;
-    letter-spacing: 0.12em;
+    /* letter-spacing: 0.12em; */
     text-transform: uppercase;
     padding: 2px 7px;
-    border-radius: 10px;
-    font-weight: 600;
+    /* border-radius: 10px; */
+    font-weight: 400;
 }
 
 .dash-writer .role-student {
@@ -3397,12 +3400,12 @@ body.page-editor {
     gap: 8px;
     font-family: var(--mono);
     font-size: 0.75rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    /* letter-spacing: 0.18em; */
+    /* text-transform: uppercase; */
     color: var(--muted);
     padding: 6px 12px;
     border: 1px solid var(--border);
-    border-radius: 3px;
+    /* border-radius: 3px; */
     text-decoration: none;
 }
 
@@ -3414,8 +3417,8 @@ body.page-editor {
 .page-editor .ed-status {
     font-family: var(--mono);
     font-size: 0.72rem;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    /* letter-spacing: 0.18em; */
+    /* text-transform: uppercase; */
     color: var(--muted);
     display: inline-flex;
     align-items: center;
@@ -3483,11 +3486,11 @@ body.page-editor {
     color: var(--bg);
     font-family: var(--mono);
     font-size: 0.65rem;
-    letter-spacing: 0.18em;
+    /* letter-spacing: 0.18em; */
     text-transform: uppercase;
     padding: 4px 10px;
-    border-radius: 12px;
-    font-weight: 600;
+    /* border-radius: 12px; */
+    /* font-weight: 600; */
     display: none;
 }
 
@@ -3804,11 +3807,11 @@ body.page-editor {
 .page-editor .role-badge {
     font-family: var(--mono);
     font-size: 0.6rem;
-    letter-spacing: 0.12em;
+    /* letter-spacing: 0.12em; */
     text-transform: uppercase;
     padding: 2px 7px;
-    border-radius: 10px;
-    font-weight: 600;
+    /* border-radius: 10px; */
+    font-weight: 400;
 }
 
 .page-editor .role-student {
@@ -4151,9 +4154,9 @@ body.page-editor {
     .dash-admin .dash-top-inner,
     .dash-student .dash-top-inner,
     .dash-writer .dash-top-inner {
-        flex-wrap: wrap;
+        /* flex-wrap: wrap; */
         align-items: flex-start;
-        gap: 0.6rem 0.8rem;
+        /* gap: 0.6rem 0.8rem; */
     }
 
     .dash-admin .brand,
@@ -4362,7 +4365,7 @@ body.page-editor {
     .dash-admin .psub,
     .dash-student .psub,
     .dash-writer .psub {
-        font-size: 0.72rem;
+        font-size: 0.52rem;
     }
 
     /* columns zyada wali tables ko squish hone se bachao — narrow screen par
@@ -4431,7 +4434,7 @@ body.page-editor {
     .dash-admin .ptitle,
     .dash-student .ptitle,
     .dash-writer .ptitle {
-        font-size: 0.9rem;
+        font-size: 0.7rem;
     }
 }
 

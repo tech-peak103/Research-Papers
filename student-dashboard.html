@@ -246,7 +246,7 @@
                     : '<span class="psub">' + fmtDate(p.updated_at) + '</span>';
                 h += '<tr onclick="openPaper(\'' + p.id + '\')">'
                     + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div>' + (p.abstract ? '<div class="psub">' + esc(String(p.abstract).slice(0, 80)) + (String(p.abstract).length > 80 ? '…' : '') + '</div>' : '') + '</td>'
-                    + '<td style="font-family:var(--mono);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</td>'
+                    + '<td style="font-family:var(--mono);font-size:0.60rem;color:var(--muted);">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</td>'
                     + '<td>' + writerCell(p.id) + '</td>'
                     + '<td>' + (p.word_count || 0) + '</td>'
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
