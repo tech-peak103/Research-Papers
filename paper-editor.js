@@ -744,3 +744,89 @@ function downloadHTML() {
 
 if (sb && quill) loadPaper();
 console.log('[Paper Editor] Setup complete');
+
+
+/* ═══════════════════════════════════════════════════════════════
+   ⭐ COMMENTS (har role ko dikhega — student, writer, admin, co_admin)
+═══════════════════════════════════════════════════════════════ */
+var COMMENTS_TABLE = 'paper_comments';
+var _comments = [];
+
+async function loadComments() {
+    if (!sb || !PAPER_ID) return;
+    try {
+        var res = await sb.from(COMMENTS_TABLE)
+            .select('*')
+            .eq('paper_id', PAPER_ID)
+            .order('created_at', { ascending: false });
+        if (res.error) throw res.error;
+        _comments = res.data || [];
+        renderComments();
+    } catch (e) {
+        var list = document.getElementById('cmtList');
+        if (list) list.innerHTML = '<div class="cmt-empty">Comments did not load: ' + e.message + '</div>';
+    }
+}
+
+function roleBadgeCmt(role) {
+    var cls = 'role-' + (role || 'student');
+    var label = role === 'admin' ? 'Admin' :
+                role === 'co_admin' ? 'Co-Admin' :
+                role === 'writer' ? 'Writer' : 'Student';
+    return '<span class="cmt-role ' + cls + '">' + label + '</span>';
+}
+
+function renderComments() {
+    var list = document.getElementById('cmtList');
+    if (!list) return;
+    if (!_comments.length) {
+        list.innerHTML = '<div class="cmt-empty">No comments yet. Be the first to comment.</div>';
+        return;
+    }
+    var html = '';
+    for (var i = 0; i < _comments.length; i++) {
+        var c = _comments[i];
+        html += '<div class="cmt-item">';
+        html +=   '<div class="cmt-item-top">';
+        html +=     '<span>' + roleBadgeCmt(c.user_role) + escapeHtml(c.user_name || 'Unknown') + '</span>';
+        html +=     '<span>' + fmtWhen(c.created_at) + '</span>';
+        html +=   '</div>';
+        html +=   '<div class="cmt-item-text">' + escapeHtml(c.comment_text) + '</div>';
+        html += '</div>';
+    }
+    list.innerHTML = html;
+    list.scrollTop = list.scrollHeight;
+}
+
+async function postComment() {
+    var input = document.getElementById('cmtInput');
+    if (!input) return;
+    var text = input.value.trim();
+    if (!text) return;
+    try {
+        var res = await sb.from(COMMENTS_TABLE).insert({
+            paper_id: PAPER_ID,
+            user_id: USER.id,
+            user_name: USER.full_name,
+            user_role: USER.role,
+            comment_text: text
+        });
+        if (res.error) throw res.error;
+        input.value = '';
+        loadComments();
+    } catch (e) {
+        toast('Comment error: ' + e.message, 'error');
+    }
+}
+
+function openComments() {
+    document.getElementById('cmtOverlay').classList.add('show');
+    loadComments();
+}
+function closeComments() {
+    document.getElementById('cmtOverlay').classList.remove('show');
+}
+function closeCommentsBg(e) {
+    if (e.target && e.target.id === 'cmtOverlay') closeComments();
+}
+

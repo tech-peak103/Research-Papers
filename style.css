@@ -1,52 +1,34 @@
-/* ============================================================
-   PEAK POTENTIA — SINGLE STYLESHEET (sab kuch ek file me)
-   ------------------------------------------------------------
-   Ab sirf yahi file chahiye. HTML me bas:
-       <link rel="stylesheet" href="style.css">
-   (peak-theme.css ki alag line ki ab zaroorat NAHI — hata sakti ho.)
-   ------------------------------------------------------------
-   Color / font badalna ho? Sirf neeche :root me values badlo.
-   ============================================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
-    /* ---- Surfaces (white + halka teal-tint) ---- */
+    /* ---- Surfaces (white + halka blue-grey tint) ---- */
     --bg: #ffffff;
-    --bg-soft: #f2f8f8;
-    /* halka teal-white panel */
-    --border: rgba(0, 184, 180, 0.28);
-    /* teal-tinted border */
-    --muted: #5b8482;
-    /* grey-teal secondary text */
-    --text: #0a2222;
-    /* near-black teal — headings & body */
+    --bg-soft: #f4f7fb;
+    /* navy-mid */
+    --border: rgba(13, 27, 42, 0.12);
+    --muted: #5b6b7f;
+    /* secondary text */
+    --text: #0a0f1a;
+    /* near-black — headings & body */
 
-    /* ---- Primary (teal) — buttons, avatars, emphasis ---- */
-    --green: #00B8B4;
-    --green-dark: #009a96;
-    /* hover (teal ka darker shade — derived) */
-    --green-soft: #1ED8D4;
+    /* ---- Primary (blue) — buttons, avatars, emphasis ---- */
+    --green: #2563eb;
+    --green-dark: #1d4ed8;
+    /* derived darker blue (hover) — not in your palette, approx. */
+    --green-soft: #3b82f6;
 
-    /* ---- Accent (yellow) — small badges/pills/stars ---- */
-    --maroon: #d99e00;
-    --maroon-dark: #b8830a;
-    /* derived darker yellow (hover) */
-    --gold: #F5C200;
+    /* ---- Accent (orange) — small badges/pills/stars ---- */
+    --maroon: #d97a2b;
+    --maroon-dark: #b8631d;
+    /* derived darker orange (hover) — not in your palette, approx. */
+    --gold: #3b82f6;
+    /* using gold-lt as the italic-emphasis accent */
 
-    /* ---- Fonts ---- */
+    /* ---- Fonts (unchanged) ---- */
     --serif: 'Cormorant Garamond', serif;
-    /* headings */
     --sans: 'DM Sans', system-ui, -apple-system, sans-serif;
-    /* body */
-    --mono: 'JetBrains Mono', ui-monospace, monospace;
-    /* labels (us project me mono nahi tha — yahi rakha) */
 }
 
-/* ============================================================
-   TYPOGRAPHY — image jaisa: bold dark serif headings,
-   teal emphasis (jaise "student"), Inter body
-   ============================================================ */
 h1,
 h2,
 h3,
@@ -79,6 +61,440 @@ body {
     font-family: var(--sans);
     color: var(--text);
 }
+
+/* ============================================================
+   INDEX PAGE — SPLIT LOGIN LAYOUT  (body.login-page)
+   Ye section sirf index.html ke liye hai. Baaki dashboards
+   aur editor pe koi effect nahi padega kyunki sab selectors
+   .split-* / .fp-* / .btn-sign-in ke andar scoped hain.
+   ============================================================ */
+
+/* ── base ── */
+body.login-page {
+    background: var(--bg-soft);
+    min-height: 100vh;
+    overflow-y: hidden;
+}
+
+.split-wrap {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ────────── LEFT PANEL ────────── */
+.split-left {
+    flex: 1 1 55%;
+    /* background: var(--text); */
+    color: var(--bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 72px;
+    position: relative;
+    overflow: hidden;
+}
+
+.split-left::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 55% 45% at 15% 85%, rgba(0, 184, 180, 0.14) 0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 85% 15%, rgba(245, 194, 0, 0.08) 0%, transparent 65%);
+    pointer-events: none;
+}
+
+/* brand */
+.split-brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 36px;
+    position: relative;
+    /* margin-top: -35%; */
+}
+
+.split-brand img {
+    width: 48px;
+    height: 48px;
+    /* border-radius: 6px; */
+}
+
+/* !important: global h-rule in style.css sets color: var(--text) !important on .brand-name */
+.split-brand-name {
+    font-family: var(--serif);
+    font-size: 1.55rem;
+    font-weight: 600;
+    color: #0e0e0e !important;
+    line-height: 1.1;
+}
+
+.split-brand-name span {
+    color: var(--green) !important;
+}
+
+.split-brand-sub {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--green);
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    margin-top: 0.4rem;
+    display: block;
+}
+
+/* live badge */
+
+/* vol label */
+
+
+/* headline — !important needed: global rule sets h1 { color: var(--text) !important } */
+.split-h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.2rem, 3.5vw, 3.4rem);
+    font-weight: 600;
+    line-height: 1.08;
+    color: #0b0a0a !important;
+    margin: 0 0 20px;
+    position: relative;
+}
+
+.split-h1 em {
+    font-style: italic;
+    color: var(--gold) !important;
+}
+
+.split-desc {
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    color: rgba(15, 15, 14, 0.62);
+    line-height: 1.7;
+    max-width: 420px;
+    margin-bottom: 48px;
+    position: relative;
+}
+
+/* stats */
+.split-stats {
+    display: flex;
+    gap: 40px;
+    flex-wrap: wrap;
+    position: relative;
+}
+
+/* !important: global rule sets h-family elements to var(--text) */
+.split-stat-num {
+    font-family: var(--serif);
+    font-size: 1.9rem;
+    font-weight: 600;
+    color: #ffffff !important;
+    line-height: 1;
+}
+
+/* .split-stat-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: rgba(240,237,230,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 5px;
+} */
+
+/* ────────── RIGHT PANEL ────────── */
+.split-right {
+    flex: 0 0 45%;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px 56px;
+    margin-top: -2%;
+}
+
+/* form header */
+.fp-label {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--green);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    border-top: 1px solid var(--green);
+    padding-top: 0.45rem;
+    display: inline-block;
+    margin-bottom: 12px;
+}
+
+/* !important: global h2 rule overrides without it */
+.fp-title {
+    font-family: var(--serif);
+    font-size: 2.1rem;
+    font-weight: 600;
+    color: var(--text) !important;
+    margin-bottom: 6px;
+    line-height: 1.12;
+}
+
+.fp-title em {
+    font-style: italic;
+    color: var(--green) !important;
+}
+
+.fp-sub {
+    font-family: var(--sans);
+    font-size: 0.88rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+    line-height: 1.5;
+}
+
+/* role toggle */
+.role-toggle {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.role-btn {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 5px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-soft);
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.role-btn.active {
+    border-color: var(--green);
+    background: rgba(0, 184, 180, 0.07);
+    color: var(--green-dark);
+}
+
+/* inline alert */
+.fp-alert {
+    display: none;
+    padding: 11px 14px;
+    border-radius: 5px;
+    font-family: var(--sans);
+    font-size: 0.84rem;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.fp-alert.error {
+    background: rgba(192, 57, 43, 0.07);
+    border: 1px solid rgba(192, 57, 43, 0.28);
+    color: #a93226;
+}
+
+.fp-alert.success {
+    background: rgba(0, 184, 180, 0.07);
+    border: 1px solid rgba(0, 184, 180, 0.25);
+    color: var(--green-dark);
+}
+
+/* form fields */
+.fp-group {
+    margin-bottom: 16px;
+}
+
+.fp-lbl {
+    display: block;
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text);
+    margin-bottom: 7px;
+}
+
+.fp-input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--bg-soft);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.fp-input:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(0, 184, 180, 0.1);
+    background: var(--bg);
+}
+
+.fp-input::placeholder {
+    color: #a5b3af;
+}
+
+.pass-wrap {
+    position: relative;
+}
+
+.pass-eye {
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 0.95rem;
+    padding: 0;
+    line-height: 1;
+}
+
+/* sign in button */
+.btn-sign-in {
+    width: 100%;
+    padding: 13px;
+    background: var(--text);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-sign-in:hover {
+    background: var(--green);
+}
+
+.btn-sign-in:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* footer links */
+.fp-footer {
+    margin-top: 14px;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+}
+
+.fp-footer a {
+    color: var(--green);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.fp-footer a:hover {
+    text-decoration: underline;
+}
+
+.fp-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 18px 0;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+}
+
+.fp-divider::before,
+.fp-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+/* spinner (used in auth.js) */
+.sp {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 960px) {
+    .split-left {
+        padding: 48px 36px;
+    }
+
+    .split-right {
+        padding: 48px 36px;
+    }
+
+}
+
+@media (max-width: 768px) {
+    .split-wrap {
+        flex-direction: column;
+    }
+
+    .split-left {
+        flex: none;
+        padding: 44px 28px 36px;
+    }
+
+    .split-right {
+        flex: none;
+        padding: 36px 24px 52px;
+    }
+
+    .split-stats {
+        gap: 28px;
+    }
+
+}
+
+@media (max-width: 768px) {
+    body.login-page {
+        overflow: auto;
+    }
+
+}
+
+@media (max-width: 480px) {
+    .split-left {
+        padding: 36px 18px 30px;
+    }
+
+    .split-right {
+        padding: 28px 18px 44px;
+    }
+
+    .split-h1 {
+        font-size: 1.85rem !important;
+    }
+
+    .fp-title {
+        font-size: 1.75rem !important;
+    }
+
+}
+
+
+
+
+
 
 /* teal input focus (image jaisa), red sirf errors ke liye */
 .form-input:focus {
@@ -129,10 +545,12 @@ body {
     overflow-x: hidden;
     margin: 0;
 }
-.container{
-padding-left: 15px;
-padding-right: 15px;
+
+.container {
+    padding-left: 15px;
+    padding-right: 15px;
 }
+
 ul {
     list-style: none;
     padding: 0;
@@ -189,7 +607,7 @@ video {
 .brand-box {
     width: 50px;
     height: 50px;
-    background: var(--green);
+    /* background: var(--green); */
     color: var(--bg);
     display: flex;
     align-items: center;
@@ -3608,7 +4026,7 @@ body.page-editor {
     font-family: 'Cormorant Garamond', serif !important;
     font-size: 18px !important;
     line-height: 1.7 !important;
-    color: var(--green) !important;
+    /* color: var(--green) !important; */
     padding: 3rem 3.5rem !important;
     min-height: 550px;
 }
@@ -4534,4 +4952,142 @@ body.page-editor {
         padding: 6px 10px;
         font-size: 0.76rem;
     }
+}
+
+
+/* comment box */
+.cmt-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .35);
+    display: none;
+    z-index: 9998;
+}
+
+.cmt-overlay.show {
+    display: block;
+}
+
+.cmt-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 380px;
+    max-width: 90vw;
+    background: #fff;
+    box-shadow: -4px 0 24px rgba(0, 0, 0, .15);
+    display: flex;
+    flex-direction: column;
+}
+
+.cmt-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.2rem 1.4rem;
+    border-bottom: 1px solid #eee;
+}
+
+.cmt-head h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.cmt-sub {
+    font-size: .75rem;
+    color: #888;
+    margin-top: .2rem;
+}
+
+.cmt-head button {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #888;
+    line-height: 1;
+}
+
+.cmt-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.2rem;
+}
+
+.cmt-empty {
+    color: #999;
+    font-size: .9rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.cmt-item {
+    border-bottom: 1px solid #f0f0f0;
+    padding: .8rem 0;
+}
+
+.cmt-item:last-child {
+    border-bottom: none;
+}
+
+.cmt-item-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: .78rem;
+    color: #888;
+    margin-bottom: .3rem;
+}
+
+.cmt-item-text {
+    font-size: .92rem;
+    color: #222;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.cmt-role {
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    padding: .1rem .5rem;
+    /* border-radius: 10px; */
+    font-weight: 600;
+    margin-right: .4rem;
+}
+
+.cmt-role.role-admin,
+.cmt-role.role-co_admin {
+    background: #fde7d8;
+    color: #a65a1f;
+}
+
+.cmt-role.role-writer {
+    background: #e2f0ff;
+    color: #1d5fa3;
+}
+
+.cmt-role.role-student {
+    background: #e6f7ec;
+    color: #1c6b3a;
+}
+
+.cmt-input-row {
+    padding: 1rem 1.2rem;
+    border-top: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+    gap: .6rem;
+}
+
+.cmt-input-row textarea {
+    width: 100%;
+    resize: vertical;
+    padding: .6rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: .9rem;
+    box-sizing: border-box;
 }
