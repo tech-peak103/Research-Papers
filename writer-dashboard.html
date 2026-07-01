@@ -7,266 +7,322 @@
     <title>Writer Dashboard · Peak Potentia</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body class="dash-writer">
 
-<div class="app-shell">
-    <aside class="app-sidebar" data-testid="writer-sidebar">
-        <div class="sb-brand">
-            <div class="sb-logo">
-                <img src="https://fr1ekw4xx.tribe.junction.express/uploads/2025/05-May/29-Thu/sm/header-icon_6838241632ce3.png" alt="">
+    <div class="app-shell">
+        <aside class="app-sidebar" data-testid="writer-sidebar">
+            <div class="sb-brand">
+                <div class="sb-logo">
+                    <img src="https://fr1ekw4xx.tribe.junction.express/uploads/2025/05-May/29-Thu/sm/header-icon_6838241632ce3.png"
+                        alt="">
+                </div>
+                <div class="sb-brand-text">
+                    <div class="sb-brand-name">Peak Potentia</div>
+                    <div class="sb-brand-role">Writer</div>
+                </div>
             </div>
-            <div class="sb-brand-text">
-                <div class="sb-brand-name">Peak Potentia</div>
-                <div class="sb-brand-role">Writer</div>
-            </div>
-        </div>
 
-        <div class="sb-section">Workspace</div>
-        <nav class="sb-nav">
-            <button class="sb-item active" data-view="mine" onclick="sbSetView('mine', event)" data-testid="nav-mine">
-                <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
-                <span class="sb-label">My Students</span>
-            </button>
-            <button class="sb-item" data-view="under_review" onclick="sbSetView('under_review', event)" data-testid="nav-review">
-                <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
-                <span class="sb-label">Under Review</span>
-            </button>
-            <button class="sb-item" data-view="completed" onclick="sbSetView('completed', event)" data-testid="nav-completed">
-                <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></span>
-                <span class="sb-label">Completed</span>
-            </button>
-        </nav>
+            <div class="sb-section">Workspace</div>
+            <nav class="sb-nav">
+                <button class="sb-item active" data-view="mine" onclick="sbSetView('mine', event)"
+                    data-testid="nav-mine">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg></span>
+                    <span class="sb-label">My Students</span>
+                </button>
+                <button class="sb-item" data-view="under_review" onclick="sbSetView('under_review', event)"
+                    data-testid="nav-review">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                        </svg></span>
+                    <span class="sb-label">Under Review</span>
+                </button>
+                <button class="sb-item" data-view="completed" onclick="sbSetView('completed', event)"
+                    data-testid="nav-completed">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12" />
+                        </svg></span>
+                    <span class="sb-label">Completed</span>
+                </button>
+            </nav>
 
-        <div class="sb-spacer"></div>
+            <div class="sb-spacer"></div>
 
-        <div class="sb-profile">
-            <div class="sb-avatar" id="userAv">—</div>
-            <div class="sb-pinfo">
-                <div class="sb-pname" id="userName">—</div>
-                <div class="sb-puser" id="userId">—</div>
-            </div>
-            <button class="sb-logout" onclick="doLogout()" title="Logout" data-testid="logout-btn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            </button>
-        </div>
-    </aside>
-
-    <main class="app-main">
-        <div class="app-topbar">
-            <div class="tb-search">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input type="text" placeholder="Search your assigned papers..." data-testid="search-input">
-            </div>
-            <div class="tb-right">
-                <button class="tb-icon-btn" title="Notifications">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <div class="sb-profile">
+                <div class="sb-avatar" id="userAv">—</div>
+                <div class="sb-pinfo">
+                    <div class="sb-pname" id="userName">—</div>
+                    <div class="sb-puser" id="userId">—</div>
+                </div>
+                <button class="sb-logout" onclick="doLogout()" title="Logout" data-testid="logout-btn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
                 </button>
             </div>
-        </div>
+        </aside>
 
-        <div class="app-content">
-            <div class="dash-welcome">
-                <div>
-                    <h1>Welcome back, <em id="welcomeName">Writer</em></h1>
-                    <p>Review and edit papers assigned to you by the admin.</p>
+        <main class="app-main">
+            <div class="app-topbar">
+                <div class="tb-search">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
+                    <input type="text" placeholder="Search your assigned papers..." data-testid="search-input">
+                </div>
+                <div class="tb-right">
+                    <button class="tb-icon-btn" title="Notifications">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 
-            <div class="stats-bar">
-                <div class="stat-card icon-teal">
-                    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
-                    <div class="label">My Students</div>
-                    <div class="num" id="statMyStudents">—</div>
+            <div class="app-content">
+                <div class="dash-welcome">
+                    <div>
+                        <h1>Welcome back, <em id="welcomeName">Writer</em></h1>
+                        <p>Review and edit papers assigned to you by the admin.</p>
+                    </div>
                 </div>
-                <div class="stat-card icon-purple">
-                    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
-                    <div class="label">My Papers</div>
-                    <div class="num" id="statMyPapers">—</div>
+
+                <div class="stats-bar">
+                    <div class="stat-card icon-teal">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                            </svg></div>
+                        <div class="label">My Students</div>
+                        <div class="num" id="statMyStudents">—</div>
+                    </div>
+                    <div class="stat-card icon-purple">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <path d="M14 2v6h6" />
+                            </svg></div>
+                        <div class="label">My Papers</div>
+                        <div class="num" id="statMyPapers">—</div>
+                    </div>
+                    <div class="stat-card icon-amber accent">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg></div>
+                        <div class="label">Under Review</div>
+                        <div class="num" id="statReview">—</div>
+                    </div>
+                    <div class="stat-card icon-green">
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg></div>
+                        <div class="label">Completed</div>
+                        <div class="num" id="statDone">—</div>
+                    </div>
                 </div>
-                <div class="stat-card icon-amber accent">
-                    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-                    <div class="label">Under Review</div>
-                    <div class="num" id="statReview">—</div>
+
+                <div class="tab-row">
+                    <div class="tab active" onclick="setView('mine', event)">My Students</div>
+                    <div class="tab" onclick="setView('under_review', event)">Under Review</div>
+                    <div class="tab" onclick="setView('completed', event)">Completed</div>
                 </div>
-                <div class="stat-card icon-green">
-                    <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
-                    <div class="label">Completed</div>
-                    <div class="num" id="statDone">—</div>
+
+                <div id="papersList">
+                    <div class="loading">Loading papers…</div>
                 </div>
             </div>
+        </main>
+    </div>
 
-            <div class="tab-row">
-                <div class="tab active" onclick="setView('mine', event)">My Students</div>
-                <div class="tab" onclick="setView('under_review', event)">Under Review</div>
-                <div class="tab" onclick="setView('completed', event)">Completed</div>
-            </div>
+    <div id="toast"></div>
 
-            <div id="papersList"><div class="loading">Loading papers…</div></div>
-        </div>
-    </main>
-</div>
+    <script>
+        'use strict';
+        var SUPABASE_URL = 'https://uxhltsmddtuiqoadhdfd.supabase.co';
+        var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aGx0c21kZHR1aXFvYWRoZGZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc2NDIsImV4cCI6MjA5NTAwMzY0Mn0.oKwtLMYhOpj_z4W-G9aEe1kmp9_q6sLDl273dQLBfbw';
+        var IS_LIVE = SUPABASE_URL && SUPABASE_URL.indexOf('https://') === 0;
+        var sb = IS_LIVE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-<div id="toast"></div>
-
-<script>
-'use strict';
-var SUPABASE_URL = 'https://uxhltsmddtuiqoadhdfd.supabase.co';
-var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV4aGx0c21kZHR1aXFvYWRoZGZkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc2NDIsImV4cCI6MjA5NTAwMzY0Mn0.oKwtLMYhOpj_z4W-G9aEe1kmp9_q6sLDl273dQLBfbw';
-var IS_LIVE = SUPABASE_URL && SUPABASE_URL.indexOf('https://') === 0;
-var sb = IS_LIVE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-
-function loadSession(){
-    var raw = sessionStorage.getItem('sc_user') || localStorage.getItem('sc_user');
-    if (!raw) return null;
-    try { var u = JSON.parse(raw); sessionStorage.setItem('sc_user', raw); return u; }
-    catch(e){ return null; }
-}
-var USER = loadSession();
-if (!USER || !USER.id) {
-    window.location.href = 'index.html';
-}
-
-var MY_PAPERS = [], VIEW = 'mine';
-
-function initials(n){ return (n||'T').split(' ').map(function(x){return x[0];}).join('').slice(0,2).toUpperCase(); }
-function fmtDate(d){ if(!d) return '—'; try{ return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});}catch(e){return d;} }
-function fmtWhen(d){ if(!d) return '—'; try{ return new Date(d).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return d;} }
-function esc(s){ if(!s) return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function roleBadge(r){ var l=r==='admin'?'Admin':r==='co_admin'?'Co-Admin':r==='writer'?'Writer':'Student'; return '<span class="role-badge role-'+(r||'student')+'">'+l+'</span>'; }
-
-document.getElementById('userName').textContent = USER.full_name;
-document.getElementById('userId').textContent = '@' + USER.username;
-document.getElementById('userAv').textContent = initials(USER.full_name);
-document.getElementById('welcomeName').textContent = (USER.full_name||'Writer').split(' ')[0];
-
-var _tt;
-function toast(msg,type){ type=type||''; var el=document.getElementById('toast'); el.textContent=msg; el.className='show '+type; clearTimeout(_tt); _tt=setTimeout(function(){el.className='';},3000); }
-
-function setStatsZero(){
-    document.getElementById('statMyStudents').textContent = 0;
-    document.getElementById('statMyPapers').textContent = 0;
-    document.getElementById('statReview').textContent = 0;
-    document.getElementById('statDone').textContent = 0;
-}
-
-async function loadPapers(){
-    var list = document.getElementById('papersList');
-    if (!IS_LIVE){ list.innerHTML='<div class="loading">Supabase config missing</div>'; return; }
-    try {
-        var col = await sb.from('paper_collaborators').select('paper_id').eq('judge_id', USER.id);
-        var ids = (col && !col.error) ? (col.data || []).map(function(c){ return c.paper_id; }) : [];
-        var seen = {}; ids = ids.filter(function(x){ if(seen[x]) return false; seen[x]=true; return true; });
-
-        if (!ids.length){
-            MY_PAPERS = [];
-            setStatsZero();
-            render();
-            return;
+        function loadSession() {
+            var raw = sessionStorage.getItem('sc_user') || localStorage.getItem('sc_user');
+            if (!raw) return null;
+            try { var u = JSON.parse(raw); sessionStorage.setItem('sc_user', raw); return u; }
+            catch (e) { return null; }
+        }
+        var USER = loadSession();
+        if (!USER || !USER.id) {
+            window.location.href = 'index.html';
         }
 
-        var res = await sb.from('papers')
-            .select('*, registrations:student_id(full_name, username)')
-            .in('id', ids)
-            .order('updated_at',{ascending:false});
-        if (res.error) throw res.error;
-        MY_PAPERS = res.data || [];
+        var MY_PAPERS = [], VIEW = 'mine';
+        var SEARCH_TERM = '';
+        document.querySelector('.tb-search input').addEventListener('input', function (e) {
+            SEARCH_TERM = e.target.value.trim().toLowerCase();
+            render();
+        });
 
-        var myStudents = {};
-        MY_PAPERS.forEach(function(p){ if(p.student_id) myStudents[p.student_id]=true; });
+        function initials(n) { return (n || 'T').split(' ').map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
+        function fmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
+        function fmtWhen(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
+        function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function roleBadge(r) { var l = r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; return '<span class="role-badge role-' + (r || 'student') + '">' + l + '</span>'; }
 
-        document.getElementById('statMyStudents').textContent = Object.keys(myStudents).length;
-        document.getElementById('statMyPapers').textContent = MY_PAPERS.length;
-        document.getElementById('statReview').textContent = MY_PAPERS.filter(function(p){return p.status==='under_review';}).length;
-        document.getElementById('statDone').textContent = MY_PAPERS.filter(function(p){return p.status==='completed'||p.status==='awarded';}).length;
+        document.getElementById('userName').textContent = USER.full_name;
+        document.getElementById('userId').textContent = '@' + USER.username;
+        document.getElementById('userAv').textContent = initials(USER.full_name);
+        document.getElementById('welcomeName').textContent = (USER.full_name || 'Writer').split(' ')[0];
 
-        render();
-    } catch(e){ list.innerHTML = '<div class="loading">Error: '+e.message+'</div>'; }
-}
+        var _tt;
+        function toast(msg, type) { type = type || ''; var el = document.getElementById('toast'); el.textContent = msg; el.className = 'show ' + type; clearTimeout(_tt); _tt = setTimeout(function () { el.className = ''; }, 3000); }
 
-function setView(v, e){
-    VIEW = v;
-    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
-    if (e) e.target.classList.add('active');
-    // Sync sidebar
-    document.querySelectorAll('.sb-item').forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-view')===v); });
-    render();
-}
+        function setStatsZero() {
+            document.getElementById('statMyStudents').textContent = 0;
+            document.getElementById('statMyPapers').textContent = 0;
+            document.getElementById('statReview').textContent = 0;
+            document.getElementById('statDone').textContent = 0;
+        }
 
-function sbSetView(v, e){
-    VIEW = v;
-    document.querySelectorAll('.sb-item').forEach(function(s){ s.classList.remove('active'); });
-    if (e && e.currentTarget) e.currentTarget.classList.add('active');
-    // Sync tabs
-    var tabs = document.querySelectorAll('.tab');
-    var labels = {'mine':'My Students','under_review':'Under Review','completed':'Completed'};
-    tabs.forEach(function(t){ t.classList.toggle('active', t.textContent.trim() === labels[v]); });
-    render();
-}
+        async function loadPapers() {
+            var list = document.getElementById('papersList');
+            if (!IS_LIVE) { list.innerHTML = '<div class="loading">Supabase config missing</div>'; return; }
+            try {
+                var col = await sb.from('paper_collaborators').select('paper_id').eq('judge_id', USER.id);
+                var ids = (col && !col.error) ? (col.data || []).map(function (c) { return c.paper_id; }) : [];
+                var seen = {}; ids = ids.filter(function (x) { if (seen[x]) return false; seen[x] = true; return true; });
 
-function render(){
-    var list = document.getElementById('papersList');
-    var data = MY_PAPERS;
-    if (VIEW === 'under_review') data = MY_PAPERS.filter(function(p){ return p.status==='under_review'; });
-    else if (VIEW === 'completed') data = MY_PAPERS.filter(function(p){ return p.status==='completed'||p.status==='awarded'; });
+                if (!ids.length) {
+                    MY_PAPERS = [];
+                    setStatsZero();
+                    render();
+                    return;
+                }
 
-    if (!data.length){
-        list.innerHTML = '<div class="empty-state"><div class="em-icon">📋</div><h3>No papers here</h3><p>'
-            + (VIEW==='mine'
-                ? 'The admin has not assigned any paper to you yet. When the admin assigns a student\'s paper to you, it will appear here.'
-                : 'There is nothing in this filter.')
-            + '</p></div>';
-        return;
-    }
-    var h = '<div class="card-wrap"><table><thead><tr><th>Title &amp; Author</th><th>Track</th><th>Words</th><th>Status</th><th>Last Edit</th><th></th></tr></thead><tbody>';
-    data.forEach(function(p){
-        var lastEd = p.last_editor_name ? roleBadge(p.last_editor_role)+' '+esc(p.last_editor_name)+'<div class="last-ed">'+fmtWhen(p.last_edited_at||p.updated_at)+'</div>' : '<span class="pauthor">'+fmtDate(p.updated_at)+'</span>';
-        h += '<tr class="clickable" onclick="openPaper(\''+p.id+'\')">'
-            + '<td><div class="ptitle">'+esc(p.title||'Untitled')+'</div><div class="pauthor">by '+esc(p.registrations?p.registrations.full_name:'—')+' (@'+esc(p.registrations?p.registrations.username:'—')+')</div></td>'
-            + '<td><span class="psub">'+(p.track==='essay'?'Essay':'Research')+'</span></td>'
-            + '<td>'+(p.word_count||0)+'</td>'
-            + '<td><span class="pstatus '+(p.status||'draft')+'">'+(p.status||'draft').replace('_',' ')+'</span></td>'
-            + '<td>'+lastEd+'</td>'
-            + '<td><div class="row-actions"><button class="view-btn" onclick="event.stopPropagation();openPaper(\''+p.id+'\')">Open / Edit →</button>'+delBtn(p.id)+'</div></td>'
-            + '</tr>';
-    });
-    h += '</tbody></table></div>';
-    list.innerHTML = h;
-}
+                var res = await sb.from('papers')
+                    .select('*, registrations:student_id(full_name, username)')
+                    .in('id', ids)
+                    .order('updated_at', { ascending: false });
+                if (res.error) throw res.error;
+                MY_PAPERS = res.data || [];
 
-function delBtn(id){
-    return '<button class="del-btn" title="Delete paper" onclick="event.stopPropagation();deletePaper(\''+id+'\')">'
-         + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
-         + 'Delete</button>';
-}
+                var myStudents = {};
+                MY_PAPERS.forEach(function (p) { if (p.student_id) myStudents[p.student_id] = true; });
 
-async function deletePaper(id){
-    if (!confirm('Are you sure you want to delete this paper? The student\'s paper will be permanently deleted.')) return;
-    try {
-        try { await sb.from('paper_versions').delete().eq('paper_id', id); } catch(e){}
-        try { await sb.from('paper_collaborators').delete().eq('paper_id', id); } catch(e){}
-        var res = await sb.from('papers').delete().eq('id', id);
-        if (res.error) throw res.error;
+                document.getElementById('statMyStudents').textContent = Object.keys(myStudents).length;
+                document.getElementById('statMyPapers').textContent = MY_PAPERS.length;
+                document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
+                document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
 
-        MY_PAPERS = MY_PAPERS.filter(function(p){ return p.id !== id; });
-        var myStudents = {}; MY_PAPERS.forEach(function(p){ if(p.student_id) myStudents[p.student_id]=true; });
-        document.getElementById('statMyStudents').textContent = Object.keys(myStudents).length;
-        document.getElementById('statMyPapers').textContent = MY_PAPERS.length;
-        document.getElementById('statReview').textContent = MY_PAPERS.filter(function(p){return p.status==='under_review';}).length;
-        document.getElementById('statDone').textContent = MY_PAPERS.filter(function(p){return p.status==='completed'||p.status==='awarded';}).length;
-        render();
-        toast('Paper deleted ✓','success');
-    } catch(e){ toast('Delete error: '+e.message,'error'); }
-}
+                render();
+            } catch (e) { list.innerHTML = '<div class="loading">Error: ' + e.message + '</div>'; }
+        }
 
-function openPaper(id){ window.location.href = 'paper-editor.html?id=' + id; }
-function doLogout(){ localStorage.removeItem('sc_user'); sessionStorage.removeItem('sc_user'); window.location.href = 'index.html'; }
+        function setView(v, e) {
+            VIEW = v;
+            document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
+            if (e) e.target.classList.add('active');
+            // Sync sidebar
+            document.querySelectorAll('.sb-item').forEach(function (s) { s.classList.toggle('active', s.getAttribute('data-view') === v); });
+            render();
+        }
 
-loadPapers();
-</script>
+        function sbSetView(v, e) {
+            VIEW = v;
+            document.querySelectorAll('.sb-item').forEach(function (s) { s.classList.remove('active'); });
+            if (e && e.currentTarget) e.currentTarget.classList.add('active');
+            // Sync tabs
+            var tabs = document.querySelectorAll('.tab');
+            var labels = { 'mine': 'My Students', 'under_review': 'Under Review', 'completed': 'Completed' };
+            tabs.forEach(function (t) { t.classList.toggle('active', t.textContent.trim() === labels[v]); });
+            render();
+        }
+
+        function render() {
+            var list = document.getElementById('papersList');
+            var data = MY_PAPERS;
+            if (VIEW === 'under_review') data = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; });
+            else if (VIEW === 'completed') data = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; });
+            if (SEARCH_TERM) {
+                data = data.filter(function (p) {
+                    var title = (p.title || '').toLowerCase();
+                    var student = ((p.registrations ? p.registrations.full_name : '') || '').toLowerCase();
+                    var username = ((p.registrations ? p.registrations.username : '') || '').toLowerCase();
+                    return title.indexOf(SEARCH_TERM) !== -1 || student.indexOf(SEARCH_TERM) !== -1 || username.indexOf(SEARCH_TERM) !== -1;
+                });
+            }
+            if (!data.length) {
+                list.innerHTML = '<div class="empty-state"><div class="em-icon">📋</div><h3>No papers here</h3><p>'
+                    + (VIEW === 'mine'
+                        ? 'The admin has not assigned any paper to you yet. When the admin assigns a student\'s paper to you, it will appear here.'
+                        : 'There is nothing in this filter.')
+                    + '</p></div>';
+                return;
+            }
+            var h = '<div class="card-wrap"><table><thead><tr><th>Title &amp; Author</th><th>Track</th><th>Words</th><th>Status</th><th>Last Edit</th><th></th></tr></thead><tbody>';
+            data.forEach(function (p) {
+                var lastEd = p.last_editor_name ? roleBadge(p.last_editor_role) + ' ' + esc(p.last_editor_name) + '<div class="last-ed">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>' : '<span class="pauthor">' + fmtDate(p.updated_at) + '</span>';
+                h += '<tr class="clickable" onclick="openPaper(\'' + p.id + '\')">'
+                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div><div class="pauthor">by ' + esc(p.registrations ? p.registrations.full_name : '—') + ' (@' + esc(p.registrations ? p.registrations.username : '—') + ')</div></td>'
+                    + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
+                    + '<td>' + (p.word_count || 0) + '</td>'
+                    + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
+                    + '<td>' + lastEd + '</td>'
+                    + '<td><div class="row-actions"><button class="view-btn" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit →</button>' + delBtn(p.id) + '</div></td>'
+                    + '</tr>';
+            });
+            h += '</tbody></table></div>';
+            list.innerHTML = h;
+        }
+
+        function delBtn(id) {
+            return '<button class="del-btn" title="Delete paper" onclick="event.stopPropagation();deletePaper(\'' + id + '\')">'
+                + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'
+                + 'Delete</button>';
+        }
+
+        async function deletePaper(id) {
+            if (!confirm('Are you sure you want to delete this paper? The student\'s paper will be permanently deleted.')) return;
+            try {
+                try { await sb.from('paper_versions').delete().eq('paper_id', id); } catch (e) { }
+                try { await sb.from('paper_collaborators').delete().eq('paper_id', id); } catch (e) { }
+                var res = await sb.from('papers').delete().eq('id', id);
+                if (res.error) throw res.error;
+
+                MY_PAPERS = MY_PAPERS.filter(function (p) { return p.id !== id; });
+                var myStudents = {}; MY_PAPERS.forEach(function (p) { if (p.student_id) myStudents[p.student_id] = true; });
+                document.getElementById('statMyStudents').textContent = Object.keys(myStudents).length;
+                document.getElementById('statMyPapers').textContent = MY_PAPERS.length;
+                document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
+                document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
+                render();
+                toast('Paper deleted ✓', 'success');
+            } catch (e) { toast('Delete error: ' + e.message, 'error'); }
+        }
+
+        function openPaper(id) { window.location.href = 'paper-editor.html?id=' + id; }
+        function doLogout() { localStorage.removeItem('sc_user'); sessionStorage.removeItem('sc_user'); window.location.href = 'index.html'; }
+
+        loadPapers();
+    </script>
 
 </body>
+
 </html>

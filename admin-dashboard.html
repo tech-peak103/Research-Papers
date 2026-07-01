@@ -20,7 +20,8 @@
         <aside class="app-sidebar" data-testid="admin-sidebar">
             <div class="sb-brand">
                 <div class="sb-logo">
-                    <img src="https://fr1ekw4xx.tribe.junction.express/uploads/2025/05-May/29-Thu/sm/header-icon_6838241632ce3.png" alt="">
+                    <img src="https://fr1ekw4xx.tribe.junction.express/uploads/2025/05-May/29-Thu/sm/header-icon_6838241632ce3.png"
+                        alt="">
                 </div>
                 <div class="sb-brand-text">
                     <div class="sb-brand-name">Peak Potentia</div>
@@ -30,20 +31,41 @@
 
             <div class="sb-section">Menu</div>
             <nav class="sb-nav">
-                <button class="sb-item active" data-panel="papers" onclick="switchTabById(this, 'papers')" data-testid="nav-papers">
-                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>
+                <button class="sb-item active" data-panel="papers" onclick="switchTabById(this, 'papers')"
+                    data-testid="nav-papers">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <path d="M14 2v6h6" />
+                            <path d="M16 13H8" />
+                            <path d="M16 17H8" />
+                        </svg></span>
                     <span class="sb-label">All Papers</span>
                 </button>
-                <button class="sb-item" data-panel="writers" onclick="switchTabById(this, 'writers')" data-testid="nav-writers">
-                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                <button class="sb-item" data-panel="writers" onclick="switchTabById(this, 'writers')"
+                    data-testid="nav-writers">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg></span>
                     <span class="sb-label">Writers &amp; Students</span>
                 </button>
-                <button class="sb-item" data-panel="edits" onclick="switchTabById(this, 'edits')" data-testid="nav-edits">
-                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
+                <button class="sb-item" data-panel="edits" onclick="switchTabById(this, 'edits')"
+                    data-testid="nav-edits">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 20h9" />
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+                        </svg></span>
                     <span class="sb-label">Recent Edits</span>
                 </button>
-                <button class="sb-item" data-panel="people" onclick="switchTabById(this, 'people')" data-testid="nav-people">
-                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.66A8 8 0 0 1 12 18a8 8 0 0 1 5 2.66"/></svg></span>
+                <button class="sb-item" data-panel="people" onclick="switchTabById(this, 'people')"
+                    data-testid="nav-people">
+                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10" />
+                            <circle cx="12" cy="10" r="3" />
+                            <path d="M7 20.66A8 8 0 0 1 12 18a8 8 0 0 1 5 2.66" />
+                        </svg></span>
                     <span class="sb-label">People</span>
                 </button>
             </nav>
@@ -57,7 +79,11 @@
                     <div class="sb-puser" id="userId">—</div>
                 </div>
                 <button class="sb-logout" onclick="doLogout()" title="Logout" data-testid="logout-btn">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <polyline points="16 17 21 12 16 7" />
+                        <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
                 </button>
             </div>
         </aside>
@@ -66,12 +92,18 @@
         <main class="app-main">
             <div class="app-topbar">
                 <div class="tb-search">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                    </svg>
                     <input type="text" placeholder="Search papers, writers, students..." data-testid="search-input">
                 </div>
                 <div class="tb-right">
                     <button class="tb-icon-btn" title="Notifications" data-testid="notifications-btn">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        </svg>
                         <span class="tb-dot"></span>
                     </button>
                 </div>
@@ -87,32 +119,57 @@
 
                 <div class="stats-bar" id="statsBar">
                     <div class="stat-card icon-teal">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <circle cx="9" cy="7" r="4" />
+                            </svg></div>
                         <div class="label">Students</div>
                         <div class="num" id="stStudents">—</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><path d="M22 11l-3-3-3 3"/><path d="M19 8v13"/><circle cx="9" cy="7" r="4"/></svg></div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                                <path d="M22 11l-3-3-3 3" />
+                                <path d="M19 8v13" />
+                                <circle cx="9" cy="7" r="4" />
+                            </svg></div>
                         <div class="label">Writers</div>
                         <div class="num" id="stWriters">—</div>
                     </div>
                     <div class="stat-card icon-purple">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg></div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                <path d="M14 2v6h6" />
+                            </svg></div>
                         <div class="label">Total Papers</div>
                         <div class="num" id="stPapers">—</div>
                     </div>
                     <div class="stat-card icon-green">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg></div>
                         <div class="label">Approved</div>
                         <div class="num" id="stApproved">—</div>
                     </div>
                     <div class="stat-card icon-amber accent">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <polyline points="12 6 12 12 16 14" />
+                            </svg></div>
                         <div class="label">Pending Approvals</div>
                         <div class="num" id="stPending">—</div>
                     </div>
                     <div class="stat-card icon-red">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M12 20h9" />
+                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z" />
+                            </svg></div>
                         <div class="label">Total Edits</div>
                         <div class="num" id="stEdits">—</div>
                     </div>
@@ -242,6 +299,14 @@
         }
 
         var REGS = [], PAPERS = [], COLLABS = [], VERSIONS = [], WRITERS = [];
+        var SEARCH_TERM = '';
+        document.querySelector('.tb-search input').addEventListener('input', function (e) {
+            SEARCH_TERM = e.target.value.trim().toLowerCase();
+            renderPapers();
+            renderWriters();
+            renderPeople();
+            renderEdits();
+        });
         var regMap = {};
 
         async function loadAll() {
@@ -346,8 +411,18 @@
             var rows = IS_CO_ADMIN
                 ? PAPERS.filter(function (p) { return (p.status || '') === 'completed'; })
                 : PAPERS;
+
+            if (SEARCH_TERM) {
+                rows = rows.filter(function (p) {
+                    var title = (p.title || '').toLowerCase();
+                    var student = ((p.registrations ? p.registrations.full_name : '') || '').toLowerCase();
+                    var writerNames = writersForPaper(p.id).map(function (t) { return (t.full_name || '').toLowerCase(); }).join(' ');
+                    return title.indexOf(SEARCH_TERM) !== -1 || student.indexOf(SEARCH_TERM) !== -1 || writerNames.indexOf(SEARCH_TERM) !== -1;
+                });
+            }
+
             if (!rows.length) {
-                box.innerHTML = '<div class="empty">' + (IS_CO_ADMIN ? 'No completed papers yet.' : 'No paper right now.') + '</div>';
+                box.innerHTML = '<div class="empty">' + (SEARCH_TERM ? 'No paper matches your search.' : (IS_CO_ADMIN ? 'No completed papers yet.' : 'No paper right now.')) + '</div>';
                 return;
             }
             var h = IS_FULL_ADMIN ? '<p class="note">Every paper must be assigned to at least one writer before it becomes visible on the respective writer and student dashboards.</p>' : '';
@@ -416,6 +491,14 @@
         function renderWriters() {
             var box = document.getElementById('writersBox');
             var writers = REGS.filter(function (r) { return isWriterRole(r.role); });
+
+            if (SEARCH_TERM) {
+                writers = writers.filter(function (t) {
+                    return (t.full_name || '').toLowerCase().indexOf(SEARCH_TERM) !== -1
+                        || (t.username || '').toLowerCase().indexOf(SEARCH_TERM) !== -1;
+                });
+            }
+
             var map = {};
             writers.forEach(function (t) { map[t.id] = { name: t.full_name, username: t.username, students: {}, research: 0, essay: 0 }; });
             COLLABS.forEach(function (c) {
@@ -427,7 +510,10 @@
                 if (paper.track === 'essay') map[c.judge_id].essay++; else map[c.judge_id].research++;
             });
 
-            if (!writers.length) { box.innerHTML = '<div class="empty">No writer yet. Appoint someone as the writer.</div>'; return; }
+            if (!writers.length) {
+                box.innerHTML = '<div class="empty">' + (SEARCH_TERM ? 'No writer matches your search.' : 'No writer yet. Appoint someone as the writer.') + '</div>';
+                return;
+            }
 
             var h = '<p class="note">Click on any writer row to view their students and their (research/essay) papers.</p>';
             h += '<div class="card-wrap"><table><thead><tr>'
@@ -568,9 +654,20 @@
 
         function renderEdits() {
             var box = document.getElementById('editsBox');
-            if (!VERSIONS.length) { box.innerHTML = '<div class="empty">No edit records yet.</div>'; return; }
+            var rows = VERSIONS;
+            if (SEARCH_TERM) {
+                rows = rows.filter(function (v) {
+                    var ptitle = (v.papers ? v.papers.title : '') || '';
+                    return (v.editor_name || '').toLowerCase().indexOf(SEARCH_TERM) !== -1
+                        || ptitle.toLowerCase().indexOf(SEARCH_TERM) !== -1;
+                });
+            }
+            if (!rows.length) {
+                box.innerHTML = '<div class="empty">' + (SEARCH_TERM ? 'No edit matches your search.' : 'No edit records yet.') + '</div>';
+                return;
+            }
             var h = '';
-            VERSIONS.forEach(function (v) {
+            rows.forEach(function (v) {
                 var ptitle = v.papers ? v.papers.title : 'a paper';
                 h += '<div class="feed-item"><div class="feed-dot" style="background:' + dotColor(v.editor_role) + '"></div>'
                     + '<div><div class="feed-text">' + roleBadge(v.editor_role) + ' <strong>' + esc(v.editor_name || 'Someone') + '</strong> edited <em>' + esc(ptitle || 'a paper') + '</em>'
@@ -583,13 +680,25 @@
 
         function renderPeople() {
             var box = document.getElementById('peopleBox');
-            if (!REGS.length) { box.innerHTML = '<div class="empty">No registration.</div>'; return; }
+            var rows = REGS;
+
+            if (SEARCH_TERM) {
+                rows = rows.filter(function (r) {
+                    return (r.full_name || '').toLowerCase().indexOf(SEARCH_TERM) !== -1
+                        || (r.username || '').toLowerCase().indexOf(SEARCH_TERM) !== -1;
+                });
+            }
+
+            if (!rows.length) {
+                box.innerHTML = '<div class="empty">' + (SEARCH_TERM ? 'No person matches your search.' : 'No registration.') + '</div>';
+                return;
+            }
             var roles = ['student', 'writer', 'co_admin', 'admin'];
             var h = '<div class="card-wrap"><table><thead><tr>'
                 + '<th>Name</th><th>Username</th><th>Role</th><th>Status</th>'
                 + (IS_FULL_ADMIN ? '<th>Actions</th>' : '')
                 + '</tr></thead><tbody>';
-            REGS.forEach(function (r) {
+            rows.forEach(function (r) {
                 h += '<tr>'
                     + '<td><div class="ptitle">' + esc(r.full_name) + '</div><div class="psub">' + esc(r.email || '') + '</div></td>'
                     + '<td><span class="psub">@' + esc(r.username || '—') + '</span></td>'
