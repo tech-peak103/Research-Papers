@@ -627,13 +627,28 @@ async function restoreVersion(id) {
 }
 
 /* ─── DOWNLOAD DROPDOWN ─── */
+/* ─── DOWNLOAD DROPDOWN ─── */
 function toggleDownload(e) {
     e.stopPropagation();
-    document.getElementById('downloadMenu').classList.toggle('open');
+    var menu = document.getElementById('downloadMenu');
+    if (!menu) return;
+    menu.classList.toggle('show');
 }
 document.addEventListener('click', function() {
     var dm = document.getElementById('downloadMenu');
-    if (dm) dm.classList.remove('open');
+    if (dm) dm.classList.remove('show');
+});
+
+/* Page load par hi bata do agar koi download library fail hui */
+window.addEventListener('load', function() {
+    var missing = [];
+    if (typeof html2pdf === 'undefined') missing.push('PDF (html2pdf)');
+    if (typeof window.docx === 'undefined') missing.push('Word (docx)');
+    if (typeof window.saveAs === 'undefined') missing.push('FileSaver');
+    if (missing.length) {
+        console.error('[Paper Editor] Download libraries missing:', missing.join(', '));
+        toast(missing.join(', ') + ' load nahi hui — download kaam nahi karega. Console check karo.', 'error');
+    }
 });
 
 function escapeHtml(s) {
@@ -786,11 +801,18 @@ function renderComments() {
     var html = '';
     for (var i = 0; i < _comments.length; i++) {
         var c = _comments[i];
-        html += '<div class="cmt-item">';
+        var clickable = !!c.anchor_text;
+        html += '<div class="cmt-item" style="cursor:' + (clickable ? 'pointer' : 'default') + ';"' +
+                (clickable ? (' onclick="jumpToComment(\'' + c.id + '\')"') : '') + '>';
         html +=   '<div class="cmt-item-top">';
-        html +=     '<span>' + roleBadgeCmt(c.user_role) + escapeHtml(c.user_name || 'Unknown') + '</span>';
+        html +=     '<span>' + roleBadgeCmt(c.user_role)+'</span>'+ '<span>' + escapeHtml(c.user_name ||  'Unknown') + '</span>';
         html +=     '<span>' + fmtWhen(c.created_at) + '</span>';
         html +=   '</div>';
+        if (clickable) {
+            html += '<div style="font-size:.72rem;background:#f5f0e6;border-left:3px solid #c9a05a;padding:5px 8px;margin:4px 0;border-radius:3px;color:#5a6b5e;">"' +
+                    escapeHtml(c.anchor_text.slice(0, 100)) +
+                    (c.anchor_text.length > 100 ? '…' : '') + '"</div>';
+        }
         html +=   '<div class="cmt-item-text">' + escapeHtml(c.comment_text) + '</div>';
         html += '</div>';
     }
@@ -804,15 +826,23 @@ async function postComment() {
     var text = input.value.trim();
     if (!text) return;
     try {
-        var res = await sb.from(COMMENTS_TABLE).insert({
+        var payload = {
             paper_id: PAPER_ID,
             user_id: USER.id,
             user_name: USER.full_name,
             user_role: USER.role,
             comment_text: text
-        });
+        };
+        if (_pendingAnchor) {
+            payload.anchor_index = _pendingAnchor.index;
+            payload.anchor_length = _pendingAnchor.length;
+            payload.anchor_text = _pendingAnchor.text;
+        }
+        var res = await sb.from(COMMENTS_TABLE).insert(payload);
         if (res.error) throw res.error;
         input.value = '';
+        _pendingAnchor = null;
+        showAnchorPreview();
         loadComments();
     } catch (e) {
         toast('Comment error: ' + e.message, 'error');
@@ -822,11 +852,102 @@ async function postComment() {
 function openComments() {
     document.getElementById('cmtOverlay').classList.add('show');
     loadComments();
+    showAnchorPreview();
 }
 function closeComments() {
     document.getElementById('cmtOverlay').classList.remove('show');
 }
 function closeCommentsBg(e) {
     if (e.target && e.target.id === 'cmtOverlay') closeComments();
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ⭐ SELECTION-ANCHORED COMMENTS
+   Paragraph select karo → "💬 Comment" button dikhega → us par click
+   karke comment likho. Comment list me quote dikhega, aur us comment
+   par click karne se editor me wo section highlight ho jayega.
+═══════════════════════════════════════════════════════════════ */
+var _pendingAnchor = null; // { index, length, text }
+
+var floatBtn = document.createElement('button');
+floatBtn.id = 'floatCommentBtn';
+floatBtn.textContent = '💬 Comment';
+floatBtn.style.cssText = 'position:absolute;display:none;z-index:500;background:#1c3a2b;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:.8rem;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.25);';
+document.body.appendChild(floatBtn);
+
+if (quill) {
+    quill.on('selection-change', function(range) {
+        if (range && range.length > 0) {
+            var bounds = quill.getBounds(range.index, range.length);
+            var editorRect = quill.root.getBoundingClientRect();
+            floatBtn.style.top = (window.scrollY + editorRect.top + bounds.top - 38) + 'px';
+            floatBtn.style.left = (window.scrollX + editorRect.left + bounds.left) + 'px';
+            floatBtn.style.display = 'block';
+        } else {
+            floatBtn.style.display = 'none';
+        }
+    });
+}
+
+/* mousedown (click nahi) — taaki editor blur hone se pehle hi selection capture ho jaye */
+floatBtn.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    var range = quill.getSelection();
+    if (!range || range.length === 0) return;
+    var text = quill.getText(range.index, range.length).trim();
+    _pendingAnchor = { index: range.index, length: range.length, text: text.slice(0, 200) };
+    floatBtn.style.display = 'none';
+    openComments();
+});
+
+function showAnchorPreview() {
+    var box = document.getElementById('anchorPreviewBox');
+    var inputRow = document.querySelector('.cmt-input-row');
+    if (!box && inputRow && inputRow.parentNode) {
+        box = document.createElement('div');
+        box.id = 'anchorPreviewBox';
+        box.style.cssText = 'font-size:.75rem;background:#f5f0e6;border-left:3px solid #c9a05a;padding:6px 9px;margin:0 1rem 8px 1rem;border-radius:4px;color:#5a6b5e;';
+        inputRow.parentNode.insertBefore(box, inputRow);   // row ke UPAR, andar nahi
+    }
+    if (!box) return;
+    if (_pendingAnchor) {
+        box.innerHTML = '<strong>Commenting on:</strong> "' +
+            escapeHtml(_pendingAnchor.text.slice(0, 120)) +
+            (_pendingAnchor.text.length > 120 ? '…' : '') +
+            '" &nbsp;<a href="#" onclick="clearAnchor();return false;" style="color:#8b2e2e;">cancel</a>';
+        box.style.display = 'block';
+    } else {
+        box.style.display = 'none';
+    }
+}
+function clearAnchor() {
+    _pendingAnchor = null;
+    showAnchorPreview();
+}
+
+/* jab comment par click karo, uska section editor me highlight ho */
+function jumpToComment(id) {
+    var c = null;
+    for (var i = 0; i < _comments.length; i++) if (_comments[i].id === id) { c = _comments[i]; break; }
+    if (!c || c.anchor_index == null || c.anchor_length == null || !quill) return;
+
+    quill.setSelection(c.anchor_index, c.anchor_length, 'user');
+
+    var bounds = quill.getBounds(c.anchor_index, c.anchor_length);
+    var editorCard = document.querySelector('.editor-card');
+    if (editorCard) {
+        window.scrollTo({
+            top: window.scrollY + editorCard.getBoundingClientRect().top + bounds.top - 150,
+            behavior: 'smooth'
+        });
+    }
+
+    /* 2 second ka yellow flash — sirf selection se kabhi kabhi kam noticeable lagta hai */
+    try {
+        quill.formatText(c.anchor_index, c.anchor_length, { background: '#fff3a3' }, 'silent');
+        setTimeout(function() {
+            quill.formatText(c.anchor_index, c.anchor_length, { background: false }, 'silent');
+        }, 2000);
+    } catch (e) { /* non-critical, background format skip ho gaya to bhi selection dikhega */ }
 }
 

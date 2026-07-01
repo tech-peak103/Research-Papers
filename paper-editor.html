@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Paper Editor</title>
+    <title>Paper Editor · Peak Potentia</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
@@ -15,7 +15,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
@@ -26,7 +26,7 @@
     <nav class="ed-top">
         <div class="container">
             <div class="ed-top-inner">
-                <a href="student-dashboard.html" id="edBackLink" class="ed-back">Back to Dashboard</a>
+                <a href="student-dashboard.html" id="edBackLink" class="ed-back" data-testid="back-btn">Back to Dashboard</a>
 
                 <div style="display:flex; align-items:center; gap:1rem;">
                     <span class="edit-badge" id="editBadge">Edit Mode</span>
@@ -37,11 +37,11 @@
                 </div>
 
                 <div class="ed-actions">
-                    <button class="ed-btn" onclick="openComments()">Comments</button>
-                    <button class="ed-btn" onclick="openHistory()">⟲ History</button>
-                    <button class="ed-btn" onclick="manualSave()">Save</button>
+                    <button class="ed-btn" onclick="openComments()" data-testid="comments-btn">Comments</button>
+                    <button class="ed-btn" onclick="openHistory()" data-testid="history-btn">⟲ History</button>
+                    <button class="ed-btn" onclick="manualSave()" data-testid="save-btn">Save</button>
                     <div class="download-wrap">
-                        <button class="ed-btn primary" onclick="toggleDownload(event)">Download</button>
+                        <button class="ed-btn primary" onclick="toggleDownload(event)" data-testid="download-btn">Download</button>
                         <div class="download-menu" id="downloadMenu">
                             <button onclick="downloadPDF()">Download as PDF</button>
                             <button onclick="downloadDOCX()">Download as Word (.docx)</button>
@@ -55,9 +55,8 @@
 
     <div class="doc-wrap">
         <div class="doc-title-box">
-            <input type="text" class="doc-title-input" id="docTitle" placeholder="Your paper title" autocomplete="off">
-            <textarea class="doc-abstract-input" id="docAbstract" placeholder="Write a brief abstract (2-3 sentences)"
-                rows="2"></textarea>
+            <textarea class="doc-title-input" id="docTitle" placeholder="Your paper title" rows="1" autocomplete="off" data-testid="doc-title" oninput="autoGrowTitle(this)"></textarea>
+            <textarea class="doc-abstract-input" id="docAbstract" placeholder="Write a brief abstract (2-3 sentences)" rows="2" data-testid="doc-abstract"></textarea>
 
             <div class="doc-meta-row">
                 <div class="meta-item">
@@ -108,7 +107,7 @@
             <div class="hist-head">
                 <div>
                     <h3>Version History</h3>
-                    <div class="hist-sub">Who - When - Restore</div>
+                    <div class="hist-sub">Who · When · Restore</div>
                 </div>
                 <button onclick="closeHistory()">×</button>
             </div>
@@ -159,6 +158,27 @@
             </div>
         </aside>
     </div>
+
+    <script>
+        // Auto-grow textarea title so long titles wrap naturally
+        function autoGrowTitle(el){
+            if(!el) return;
+            el.style.height = 'auto';
+            el.style.height = (el.scrollHeight) + 'px';
+        }
+        // Initial grow + after content loaded
+        window.addEventListener('load', function(){
+            var t = document.getElementById('docTitle');
+            if(t){
+                autoGrowTitle(t);
+                // Watch for programmatic value changes (paper-editor.js sets value after fetch)
+                var lastVal = t.value;
+                setInterval(function(){
+                    if(t.value !== lastVal){ lastVal = t.value; autoGrowTitle(t); }
+                }, 400);
+            }
+        });
+    </script>
 
     <script src="paper-editor.js"></script>
 

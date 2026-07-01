@@ -39,7 +39,7 @@ async function submitLogin() {
     try {
         const { data, error } = await sb.rpc('user_login', { p_username: username, p_password: password });
         if (error) { showLoginAlert('Error: ' + error.message, 'error'); return; }
-        if (!data || !data.success) { showLoginAlert(data && data.message ? data.message : 'Incorrect credentials.', 'error'); return; }
+        if (!data || !data.success) { showLoginAlert('Incorrect credentials.', 'error'); return; }
 
         const user = {
             id: data.id,
