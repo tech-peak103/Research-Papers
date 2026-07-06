@@ -48,8 +48,13 @@ try {
 function loadSession() {
     var raw = sessionStorage.getItem('sc_user') || localStorage.getItem('sc_user');
     if (!raw) return null;
-    try { var u = JSON.parse(raw); sessionStorage.setItem('sc_user', raw); return u; }
-    catch (e) { return null; }
+    try {
+        var u = JSON.parse(raw);
+        sessionStorage.setItem('sc_user', raw);
+        return u;
+    } catch (e) {
+        return null;
+    }
 }
 var USER = loadSession();
 
@@ -59,7 +64,7 @@ if (!USER || !USER.id) {
 
 /* Privileged = student ke alawa sab (writer / admin / co_admin) */
 var PRIV = USER && (USER.role === 'admin' || USER.role === 'co_admin' ||
-                    USER.role === 'writer');
+    USER.role === 'writer');
 var IS_WRITER = USER && (USER.role === 'writer');
 
 function dashFor(role) {
@@ -84,26 +89,29 @@ if (PRIV) {
     var badge = document.getElementById('editBadge');
     if (badge) {
         var roleLabel = USER.role === 'admin' ? 'Admin' :
-                        USER.role === 'co_admin' ? 'Co-Admin' : 'Writer';
+            USER.role === 'co_admin' ? 'Co-Admin' : 'Writer';
         badge.textContent = roleLabel + ' Edit Mode';
         badge.classList.add('show');
     }
 }
 
-function goBackToDashboard() { window.location.href = BACK_URL; }
+function goBackToDashboard() {
+    window.location.href = BACK_URL;
+}
 
 
 var PAPER = null;
 var _isLoading = true;
 var _saveTimer = null;
-var _lastSavedContent = '';   // papers table me jo current hai
+var _lastSavedContent = ''; // papers table me jo current hai
 var _lastVersionContent = ''; // last snapshot ka content
-var _lastVersionTime = 0;     // last snapshot kab bana (ms)
-var _versions = [];           // loaded history list
+var _lastVersionTime = 0; // last snapshot kab bana (ms)
+var _versions = []; // loaded history list
 var _selectedImg = null;
 
 /* ─── TOAST ─── */
 var _tt;
+
 function toast(msg, type) {
     type = type || '';
     var el = document.getElementById('toast');
@@ -111,17 +119,24 @@ function toast(msg, type) {
     el.textContent = msg;
     el.className = 'show ' + type;
     clearTimeout(_tt);
-    _tt = setTimeout(function() { el.className = ''; }, 3000);
+    _tt = setTimeout(function () {
+        el.className = '';
+    }, 3000);
 }
 
 function fmtWhen(d) {
     if (!d) return '—';
     try {
         return new Date(d).toLocaleString('en-IN', {
-            day: 'numeric', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
-    } catch (e) { return d; }
+    } catch (e) {
+        return d;
+    }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -136,16 +151,32 @@ try {
             modules: {
                 toolbar: {
                     container: [
-                        [{ 'header': [1, 2, 3, false] }],
+                        [{
+                            'header': [1, 2, 3, false]
+                        }],
                         ['bold', 'italic', 'underline', 'strike'],
-                        [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                        [{ 'indent': '-1' }, { 'indent': '+1' }],
-                        [{ 'align': [] }],
+                        [{
+                            'list': 'ordered'
+                        }, {
+                            'list': 'bullet'
+                        }],
+                        [{
+                            'indent': '-1'
+                        }, {
+                            'indent': '+1'
+                        }],
+                        [{
+                            'align': []
+                        }],
                         ['blockquote', 'code-block'],
                         ['link', 'image'],
                         ['clean']
                     ],
-                    handlers: { image: function() { insertImage(this.quill); } }
+                    handlers: {
+                        image: function () {
+                            insertImage(this.quill);
+                        }
+                    }
                 }
             }
         });
@@ -161,34 +192,40 @@ function insertImage(quillInstance) {
     input.setAttribute('type', 'file');
     input.setAttribute('accept', 'image/*');
     input.click();
-    input.onchange = function() {
+    input.onchange = function () {
         var file = input.files[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) { toast('Image too large! Max 5MB allowed.', 'error'); return; }
+        if (file.size > 5 * 1024 * 1024) {
+            toast('Image too large! Max 5MB allowed.', 'error');
+            return;
+        }
         var reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             var range = quillInstance.getSelection(true);
             quillInstance.insertEmbed(range.index, 'image', e.target.result, 'user');
             quillInstance.setSelection(range.index + 1);
             toast('Image inserted! Click on it to resize.', 'success');
         };
-        reader.onerror = function() { toast('Failed to read image', 'error'); };
+        reader.onerror = function () {
+            toast('Failed to read image', 'error');
+        };
         reader.readAsDataURL(file);
     };
 }
 
 /* ─── IMAGE RESIZE ─── */
 if (quill) {
-    quill.root.addEventListener('click', function(e) {
+    quill.root.addEventListener('click', function (e) {
         if (e.target && e.target.tagName === 'IMG') selectImage(e.target);
         else deselectImage();
     });
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         var toolbar = document.getElementById('imgResizeToolbar');
         var editor = quill.root;
         if (!editor.contains(e.target) && toolbar && !toolbar.contains(e.target)) deselectImage();
     });
 }
+
 function selectImage(img) {
     var prev = quill.root.querySelectorAll('img.selected-img');
     for (var i = 0; i < prev.length; i++) prev[i].classList.remove('selected-img');
@@ -205,29 +242,41 @@ function selectImage(img) {
     toolbar.style.left = left + 'px';
     toolbar.classList.add('show');
 }
+
 function deselectImage() {
-    if (_selectedImg) { _selectedImg.classList.remove('selected-img'); _selectedImg = null; }
+    if (_selectedImg) {
+        _selectedImg.classList.remove('selected-img');
+        _selectedImg = null;
+    }
     var toolbar = document.getElementById('imgResizeToolbar');
     if (toolbar) toolbar.classList.remove('show');
 }
+
 function resizeImg(percent) {
     if (!_selectedImg) return;
     _selectedImg.style.width = percent + '%';
     _selectedImg.style.height = 'auto';
     _selectedImg.setAttribute('width', percent + '%');
-    setTimeout(function() { if (_selectedImg) selectImage(_selectedImg); }, 50);
+    setTimeout(function () {
+        if (_selectedImg) selectImage(_selectedImg);
+    }, 50);
     scheduleSave();
     toast('Image resized to ' + percent + '%', 'success');
 }
+
 function customResize() {
     if (!_selectedImg) return;
     var current = _selectedImg.style.width || '100%';
     var input = prompt('Enter image width (in percentage, e.g., 40):', current.replace('%', ''));
     if (input === null) return;
     var num = parseInt(input, 10);
-    if (isNaN(num) || num < 5 || num > 100) { toast('Please enter a number between 5 and 100', 'error'); return; }
+    if (isNaN(num) || num < 5 || num > 100) {
+        toast('Please enter a number between 5 and 100', 'error');
+        return;
+    }
     resizeImg(num);
 }
+
 function deleteImg() {
     if (!_selectedImg) return;
     if (!confirm('Delete this image?')) return;
@@ -241,7 +290,9 @@ function deleteImg() {
 function updateCounts() {
     if (!quill) return 0;
     var text = quill.getText().trim();
-    var words = text ? text.split(/\s+/).filter(function(w){ return w.length; }).length : 0;
+    var words = text ? text.split(/\s+/).filter(function (w) {
+        return w.length;
+    }).length : 0;
     var chars = text.length;
     var minutes = Math.max(1, Math.ceil(words / 200));
     document.getElementById('wordCount').textContent = words;
@@ -263,14 +314,23 @@ function setStatus(type, text) {
    - writer/admin/co_admin: koi bhi paper edit kar sakta hai
 ═══════════════════════════════════════════════════════════════ */
 async function loadPaper() {
-    if (!sb) { showCriticalError('Database not connected', 'Supabase client not initialized.'); return; }
+    if (!sb) {
+        showCriticalError('Database not connected', 'Supabase client not initialized.');
+        return;
+    }
     try {
         var query = sb.from('papers').select('*').eq('id', PAPER_ID);
         if (!PRIV) query = query.eq('student_id', USER.id);
 
         var result = await query.maybeSingle();
-        if (result.error) { showCriticalError('Database error', result.error.message); return; }
-        if (!result.data) { showCriticalError('Paper not found', 'This paper does not exist or you do not have access.'); return; }
+        if (result.error) {
+            showCriticalError('Database error', result.error.message);
+            return;
+        }
+        if (!result.data) {
+            showCriticalError('Paper not found', 'This paper does not exist or you do not have access.');
+            return;
+        }
 
         PAPER = result.data;
         document.getElementById('docTitle').value = PAPER.title || '';
@@ -305,20 +365,25 @@ async function loadPaper() {
 async function doSave(isManual, note) {
     if (_isLoading || !PAPER || !sb || !quill) return;
 
-    var title    = document.getElementById('docTitle').value.trim() || 'Untitled Paper';
+    var title = document.getElementById('docTitle').value.trim() || 'Untitled Paper';
     var abstract = document.getElementById('docAbstract').value.trim();
-    var track    = document.getElementById('docTrack').value;
-    var status   = document.getElementById('docStatus').value;
-    var content  = quill.root.innerHTML;
-    var words    = updateCounts();
-    var nowIso   = new Date().toISOString();
+    var track = document.getElementById('docTrack').value;
+    var status = document.getElementById('docStatus').value;
+    var content = quill.root.innerHTML;
+    var words = updateCounts();
+    var nowIso = new Date().toISOString();
 
     setStatus('saving', 'Saving...');
 
     try {
         var result = await sb.from('papers').update({
-            title: title, abstract: abstract, track: track, status: status,
-            content: content, word_count: words, updated_at: nowIso,
+            title: title,
+            abstract: abstract,
+            track: track,
+            status: status,
+            content: content,
+            word_count: words,
+            updated_at: nowIso,
             last_editor_name: USER.full_name,
             last_editor_role: USER.role,
             last_edited_at: nowIso
@@ -336,9 +401,15 @@ async function doSave(isManual, note) {
         if (IS_WRITER) {
             try {
                 await sb.from('paper_collaborators')
-                    .upsert({ paper_id: PAPER_ID, judge_id: USER.id, can_edit: true },
-                            { onConflict: 'paper_id,judge_id' });
-            } catch (ce) { /* non-critical */ }
+                    .upsert({
+                        paper_id: PAPER_ID,
+                        judge_id: USER.id,
+                        can_edit: true
+                    }, {
+                        onConflict: 'paper_id,judge_id'
+                    });
+            } catch (ce) {
+                /* non-critical */ }
         }
 
         /* VERSION SNAPSHOT — content badla ho, aur (manual ho ya 60s+ ho gaye ho) */
@@ -347,15 +418,23 @@ async function doSave(isManual, note) {
         if (changed && (isManual || throttleOk)) {
             try {
                 await sb.from('paper_versions').insert({
-                    paper_id: PAPER_ID, title: title, abstract: abstract,
-                    content: content, track: track, word_count: words,
-                    editor_id: USER.id, editor_name: USER.full_name,
-                    editor_role: USER.role, change_note: note || null
+                    paper_id: PAPER_ID,
+                    title: title,
+                    abstract: abstract,
+                    content: content,
+                    track: track,
+                    word_count: words,
+                    editor_id: USER.id,
+                    editor_name: USER.full_name,
+                    editor_role: USER.role,
+                    change_note: note || null
                 });
                 _lastVersionContent = content;
                 _lastVersionTime = Date.now();
                 loadVersions(); // refresh history list
-            } catch (ve) { console.warn('version snapshot failed', ve); }
+            } catch (ve) {
+                console.warn('version snapshot failed', ve);
+            }
         }
 
     } catch (e) {
@@ -364,7 +443,9 @@ async function doSave(isManual, note) {
     }
 }
 
-function autoSave() { return doSave(false, null); }
+function autoSave() {
+    return doSave(false, null);
+}
 
 function scheduleSave() {
     if (_isLoading) return;
@@ -373,22 +454,32 @@ function scheduleSave() {
 }
 
 if (quill) {
-    quill.on('text-change', function() { scheduleSave(); updateCounts(); });
+    quill.on('text-change', function () {
+        scheduleSave();
+        updateCounts();
+    });
 }
-['docTitle', 'docAbstract', 'docTrack', 'docStatus'].forEach(function(id) {
+['docTitle', 'docAbstract', 'docTrack', 'docStatus'].forEach(function (id) {
     var el = document.getElementById(id);
-    if (el) { el.addEventListener('input', scheduleSave); el.addEventListener('change', scheduleSave); }
+    if (el) {
+        el.addEventListener('input', scheduleSave);
+        el.addEventListener('change', scheduleSave);
+    }
 });
 
 function manualSave() {
     clearTimeout(_saveTimer);
-    doSave(true, null).then(function() { toast('Saved! Checkpoint created ✓', 'success'); });
+    doSave(true, null).then(function () {
+        toast('Saved! Checkpoint created ✓', 'success');
+    });
 }
 
 /* Refresh par bina "leave site?" dialog ke ek silent save try karo */
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     if (!_isLoading && quill && quill.root.innerHTML !== _lastSavedContent) {
-        try { autoSave(); } catch (e) {}
+        try {
+            autoSave();
+        } catch (e) {}
     }
 });
 
@@ -398,8 +489,8 @@ window.addEventListener('beforeunload', function() {
 function roleBadge(role) {
     var cls = 'role-' + (role || 'student');
     var label = role === 'admin' ? 'Admin' :
-                role === 'co_admin' ? 'Co-Admin' :
-                role === 'writer' ? 'Writer' : 'Student';
+        role === 'co_admin' ? 'Co-Admin' :
+        role === 'writer' ? 'Writer' : 'Student';
     return '<span class="role-badge ' + cls + '">' + label + '</span>';
 }
 
@@ -409,7 +500,9 @@ async function loadVersions() {
         var res = await sb.from('paper_versions')
             .select('*')
             .eq('paper_id', PAPER_ID)
-            .order('created_at', { ascending: false })
+            .order('created_at', {
+                ascending: false
+            })
             .limit(80);
         if (res.error) throw res.error;
         _versions = res.data || [];
@@ -432,16 +525,16 @@ function renderVersions() {
         var v = _versions[i];
         var isLatest = (i === 0);
         html += '<div class="hist-item">';
-        html +=   '<div class="hist-top">';
-        html +=     '<span class="hist-when">' + fmtWhen(v.created_at) + (isLatest ? ' · <em>latest</em>' : '') + '</span>';
-        html +=     '<span class="hist-words">' + (v.word_count || 0) + ' words</span>';
-        html +=   '</div>';
-        html +=   '<div class="hist-who">' + roleBadge(v.editor_role) + ' ' + escapeHtml(v.editor_name || 'Unknown') + '</div>';
+        html += '<div class="hist-top">';
+        html += '<span class="hist-when">' + fmtWhen(v.created_at) + (isLatest ? ' · <em>latest</em>' : '') + '</span>';
+        html += '<span class="hist-words">' + (v.word_count || 0) + ' words</span>';
+        html += '</div>';
+        html += '<div class="hist-who">' + roleBadge(v.editor_role) + ' ' + escapeHtml(v.editor_name || 'Unknown') + '</div>';
         if (v.change_note) html += '<div class="hist-note">' + escapeHtml(v.change_note) + '</div>';
-        html +=   '<div class="hist-actions">';
-        html +=     '<button onclick="previewVersion(\'' + v.id + '\')">Preview</button>';
-        html +=     '<button class="restore" onclick="restoreVersion(\'' + v.id + '\')">Restore</button>';
-        html +=   '</div>';
+        html += '<div class="hist-actions">';
+        html += '<button onclick="previewVersion(\'' + v.id + '\')">Preview</button>';
+        html += '<button class="restore" onclick="restoreVersion(\'' + v.id + '\')">Restore</button>';
+        html += '</div>';
         html += '</div>';
     }
     list.innerHTML = html;
@@ -451,15 +544,18 @@ function openHistory() {
     document.getElementById('histOverlay').classList.add('show');
     loadVersions();
 }
+
 function closeHistory() {
     document.getElementById('histOverlay').classList.remove('show');
 }
+
 function closeHistoryBg(e) {
     if (e.target && e.target.id === 'histOverlay') closeHistory();
 }
 
 function findVersion(id) {
-    for (var i = 0; i < _versions.length; i++) if (_versions[i].id === id) return _versions[i];
+    for (var i = 0; i < _versions.length; i++)
+        if (_versions[i].id === id) return _versions[i];
     return null;
 }
 
@@ -486,24 +582,57 @@ function htmlToText(html) {
 
 /* generic LCS diff: do arrays → ops list {t:'eq'|'del'|'ins', v:token} */
 function lcsDiff(a, b) {
-    var n = a.length, m = b.length;
+    var n = a.length,
+        m = b.length;
     var dp = new Array(n + 1);
     for (var i = 0; i <= n; i++) dp[i] = new Int32Array(m + 1);
     for (var i = n - 1; i >= 0; i--) {
-        var dpi = dp[i], dpi1 = dp[i + 1];
+        var dpi = dp[i],
+            dpi1 = dp[i + 1];
         for (var j = m - 1; j >= 0; j--) {
             if (a[i] === b[j]) dpi[j] = dpi1[j + 1] + 1;
             else dpi[j] = dpi1[j] >= dpi[j + 1] ? dpi1[j] : dpi[j + 1];
         }
     }
-    var ops = [], i = 0, j = 0;
+    var ops = [],
+        i = 0,
+        j = 0;
     while (i < n && j < m) {
-        if (a[i] === b[j]) { ops.push({ t: 'eq', v: a[i] }); i++; j++; }
-        else if (dp[i + 1][j] >= dp[i][j + 1]) { ops.push({ t: 'del', v: a[i] }); i++; }
-        else { ops.push({ t: 'ins', v: b[j] }); j++; }
+        if (a[i] === b[j]) {
+            ops.push({
+                t: 'eq',
+                v: a[i]
+            });
+            i++;
+            j++;
+        } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+            ops.push({
+                t: 'del',
+                v: a[i]
+            });
+            i++;
+        } else {
+            ops.push({
+                t: 'ins',
+                v: b[j]
+            });
+            j++;
+        }
     }
-    while (i < n) { ops.push({ t: 'del', v: a[i] }); i++; }
-    while (j < m) { ops.push({ t: 'ins', v: b[j] }); j++; }
+    while (i < n) {
+        ops.push({
+            t: 'del',
+            v: a[i]
+        });
+        i++;
+    }
+    while (j < m) {
+        ops.push({
+            t: 'ins',
+            v: b[j]
+        });
+        j++;
+    }
     return ops;
 }
 
@@ -529,19 +658,25 @@ function diffWordsInline(oldText, newText) {
 
     var a = oldText.match(/\S+|\s+/g) || [];
     var b = newText.match(/\S+|\s+/g) || [];
-    var n = a.length, m = b.length;
+    var n = a.length,
+        m = b.length;
 
     // common prefix
     var s = 0;
     while (s < n && s < m && a[s] === b[s]) s++;
     // common suffix
-    var ea = n, eb = m;
-    while (ea > s && eb > s && a[ea - 1] === b[eb - 1]) { ea--; eb--; }
+    var ea = n,
+        eb = m;
+    while (ea > s && eb > s && a[ea - 1] === b[eb - 1]) {
+        ea--;
+        eb--;
+    }
 
     var out = '';
-    for (var p = 0; p < s; p++) out += escapeHtml(a[p]);          // prefix = plain
+    for (var p = 0; p < s; p++) out += escapeHtml(a[p]); // prefix = plain
 
-    var midA = a.slice(s, ea), midB = b.slice(s, eb);             // sirf changed middle
+    var midA = a.slice(s, ea),
+        midB = b.slice(s, eb); // sirf changed middle
     if (midA.length * midB.length > 6000000) {
         // bahut bada scattered change — middle ko seedha del+ins (rare)
         if (midA.length) out += '<del style="' + DIFF_DEL_STYLE + '">' + escapeHtml(midA.join('')) + '</del>';
@@ -551,7 +686,7 @@ function diffWordsInline(oldText, newText) {
         for (var k = 0; k < ops.length; k++) out += renderTok(ops[k].t, ops[k].v);
     }
 
-    for (var q = ea; q < n; q++) out += escapeHtml(a[q]);         // suffix = plain
+    for (var q = ea; q < n; q++) out += escapeHtml(a[q]); // suffix = plain
     return out;
 }
 
@@ -561,6 +696,7 @@ function buildDiffHtml(oldHtml, newHtml) {
 }
 
 var _previewVer = null;
+
 function previewVersion(id) {
     var v = findVersion(id);
     if (!v) return;
@@ -572,31 +708,38 @@ function previewVersion(id) {
     /* is version se theek pehle wala (purana) version dhoondo.
        _versions list newest→oldest hai, isliye agla index = purana version. */
     var idx = -1;
-    for (var i = 0; i < _versions.length; i++) { if (_versions[i].id === v.id) { idx = i; break; } }
+    for (var i = 0; i < _versions.length; i++) {
+        if (_versions[i].id === v.id) {
+            idx = i;
+            break;
+        }
+    }
     var older = (idx >= 0 && idx < _versions.length - 1) ? _versions[idx + 1] : null;
 
     var body = document.getElementById('previewBody');
-    var legend = '<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">'
-        + '<span style="' + DIFF_INS_STYLE + '">added</span>'
-        + '<span style="' + DIFF_DEL_STYLE + '">deleted</span>';
+    var legend = '<div style="font-family:var(--mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.9rem;display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;">' +
+        '<span style="' + DIFF_INS_STYLE + '">added</span>' +
+        '<span style="' + DIFF_DEL_STYLE + '">deleted</span>';
 
     if (older) {
         legend += '<span style="text-transform:none;letter-spacing:0;">vs ' + fmtWhen(older.created_at) + '</span></div>';
-        body.innerHTML = legend
-            + '<div style="white-space:pre-wrap;word-break:break-word;">' + buildDiffHtml(older.content || '', v.content || '') + '</div>';
+        body.innerHTML = legend +
+            '<div style="white-space:pre-wrap;word-break:break-word;">' + buildDiffHtml(older.content || '', v.content || '') + '</div>';
     } else {
         /* sabse purana version — compare karne ko kuch nahi (sab kuch naya hai) */
         legend += '<span style="text-transform:none;letter-spacing:0;">first version</span></div>';
-        body.innerHTML = legend
-            + '<div style="white-space:pre-wrap;word-break:break-word;">'
-            + buildDiffHtml('', v.content || '') + '</div>';
+        body.innerHTML = legend +
+            '<div style="white-space:pre-wrap;word-break:break-word;">' +
+            buildDiffHtml('', v.content || '') + '</div>';
     }
     document.getElementById('previewOverlay').classList.add('show');
 }
+
 function closePreview() {
     document.getElementById('previewOverlay').classList.remove('show');
     _previewVer = null;
 }
+
 function restoreFromPreview() {
     if (_previewVer) restoreVersion(_previewVer.id);
 }
@@ -605,7 +748,7 @@ async function restoreVersion(id) {
     var v = findVersion(id);
     if (!v) return;
     if (!confirm('Restore this version?\n\n' + (v.editor_name || '') + ' · ' + fmtWhen(v.created_at) +
-                 '\n\nThe current content will be saved to a new checkpoint, and then the old version will be loaded.')) return;
+            '\n\nThe current content will be saved to a new checkpoint, and then the old version will be loaded.')) return;
 
     // pehle current ko ek checkpoint bana lo (taaki ye bhi history me safe rahe)
     await doSave(true, 'Auto-checkpoint before restore');
@@ -634,13 +777,13 @@ function toggleDownload(e) {
     if (!menu) return;
     menu.classList.toggle('show');
 }
-document.addEventListener('click', function() {
+document.addEventListener('click', function () {
     var dm = document.getElementById('downloadMenu');
     if (dm) dm.classList.remove('show');
 });
 
 /* Page load par hi bata do agar koi download library fail hui */
-window.addEventListener('load', function() {
+window.addEventListener('load', function () {
     var missing = [];
     if (typeof html2pdf === 'undefined') missing.push('PDF (html2pdf)');
     if (typeof window.docx === 'undefined') missing.push('Word (docx)');
@@ -662,7 +805,11 @@ function buildPrintHtml() {
     var abstract = document.getElementById('docAbstract').value || '';
     var content = quill ? quill.root.innerHTML : '';
     var author = USER.full_name || 'Author';
-    var date = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+    var date = new Date().toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
     var html = '';
     html += '<div style="font-family: Georgia, serif; padding: 40px; color: #1c3a2b;">';
     html += '<div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #8b2e2e; padding-bottom: 20px;">';
@@ -681,40 +828,106 @@ function buildPrintHtml() {
 
 function downloadPDF() {
     document.getElementById('downloadMenu').classList.remove('open');
-    if (typeof html2pdf === 'undefined') { toast('PDF library not loaded', 'error'); return; }
+    if (typeof html2pdf === 'undefined') {
+        toast('PDF library not loaded', 'error');
+        return;
+    }
     var title = document.getElementById('docTitle').value || 'Untitled';
     var wrapper = document.createElement('div');
     wrapper.innerHTML = buildPrintHtml();
     var opt = {
-        margin: 15, filename: title.replace(/[^a-z0-9]/gi, '_') + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        margin: 15,
+        filename: title.replace(/[^a-z0-9]/gi, '_') + '.pdf',
+        image: {
+            type: 'jpeg',
+            quality: 0.98
+        },
+        html2canvas: {
+            scale: 2,
+            useCORS: true
+        },
+        jsPDF: {
+            unit: 'mm',
+            format: 'a4',
+            orientation: 'portrait'
+        }
     };
     toast('Generating PDF...', 'success');
     html2pdf().set(opt).from(wrapper).save()
-        .then(function() { toast('PDF downloaded!', 'success'); })
-        .catch(function(e) { toast('PDF error: ' + e.message, 'error'); });
+        .then(function () {
+            toast('PDF downloaded!', 'success');
+        })
+        .catch(function (e) {
+            toast('PDF error: ' + e.message, 'error');
+        });
 }
 
 async function downloadDOCX() {
     document.getElementById('downloadMenu').classList.remove('open');
-    if (typeof window.docx === 'undefined') { toast('Word library not loaded', 'error'); return; }
-    if (typeof window.saveAs === 'undefined') { toast('FileSaver not loaded', 'error'); return; }
+    if (typeof window.docx === 'undefined') {
+        toast('Word library not loaded', 'error');
+        return;
+    }
+    if (typeof window.saveAs === 'undefined') {
+        toast('FileSaver not loaded', 'error');
+        return;
+    }
     var title = document.getElementById('docTitle').value || 'Untitled';
     var abstract = document.getElementById('docAbstract').value || '';
     var author = USER.full_name || 'Author';
     try {
-        var Document = window.docx.Document, Packer = window.docx.Packer,
-            Paragraph = window.docx.Paragraph, TextRun = window.docx.TextRun,
-            HeadingLevel = window.docx.HeadingLevel, AlignmentType = window.docx.AlignmentType;
+        var Document = window.docx.Document,
+            Packer = window.docx.Packer,
+            Paragraph = window.docx.Paragraph,
+            TextRun = window.docx.TextRun,
+            HeadingLevel = window.docx.HeadingLevel,
+            AlignmentType = window.docx.AlignmentType;
         var tempDiv = document.createElement('div');
         tempDiv.innerHTML = quill ? quill.root.innerHTML : '';
         var paragraphs = [];
-        paragraphs.push(new Paragraph({ children: [new TextRun({ text: title, bold: true, size: 36 })], alignment: AlignmentType.CENTER, spacing: { after: 200 } }));
-        var dateStr = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
-        paragraphs.push(new Paragraph({ children: [new TextRun({ text: 'by ' + author + '  -  ' + dateStr, italics: true, size: 22, color: '5a6b5e' })], alignment: AlignmentType.CENTER, spacing: { after: 400 } }));
-        if (abstract) paragraphs.push(new Paragraph({ children: [new TextRun({ text: 'Abstract: ', bold: true, size: 24 }), new TextRun({ text: abstract, italics: true, size: 24, color: '5a6b5e' })], spacing: { after: 300 } }));
+        paragraphs.push(new Paragraph({
+            children: [new TextRun({
+                text: title,
+                bold: true,
+                size: 36
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: {
+                after: 200
+            }
+        }));
+        var dateStr = new Date().toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+        paragraphs.push(new Paragraph({
+            children: [new TextRun({
+                text: 'by ' + author + '  -  ' + dateStr,
+                italics: true,
+                size: 22,
+                color: '5a6b5e'
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: {
+                after: 400
+            }
+        }));
+        if (abstract) paragraphs.push(new Paragraph({
+            children: [new TextRun({
+                text: 'Abstract: ',
+                bold: true,
+                size: 24
+            }), new TextRun({
+                text: abstract,
+                italics: true,
+                size: 24,
+                color: '5a6b5e'
+            })],
+            spacing: {
+                after: 300
+            }
+        }));
         for (var i = 0; i < tempDiv.childNodes.length; i++) {
             var node = tempDiv.childNodes[i];
             if (node.nodeType !== 1) continue;
@@ -722,28 +935,119 @@ async function downloadDOCX() {
             var text = node.textContent.trim();
             var hasImage = node.querySelector && node.querySelector('img');
             if (!text && !hasImage) continue;
-            if (hasImage && !text) { paragraphs.push(new Paragraph({ children: [new TextRun({ text: '[Image]', italics: true, size: 20, color: '8aa0b8' })], alignment: AlignmentType.CENTER, spacing: { after: 120 } })); continue; }
-            if (tag === 'h1') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, bold: true, size: 32 })], heading: HeadingLevel.HEADING_1, spacing: { before: 240, after: 120 } }));
-            else if (tag === 'h2') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, bold: true, size: 28 })], heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 100 } }));
-            else if (tag === 'h3') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, bold: true, size: 26 })], heading: HeadingLevel.HEADING_3, spacing: { before: 180, after: 100 } }));
-            else if (tag === 'ul' || tag === 'ol') { var items = node.querySelectorAll('li'); for (var j = 0; j < items.length; j++) paragraphs.push(new Paragraph({ children: [new TextRun({ text: '• ' + items[j].textContent.trim(), size: 22 })], spacing: { after: 60 } })); }
-            else if (tag === 'blockquote') paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, italics: true, size: 22, color: '5a6b5e' })], indent: { left: 720 }, spacing: { after: 120 } }));
-            else paragraphs.push(new Paragraph({ children: [new TextRun({ text: text, size: 22 })], spacing: { after: 120 } }));
+            if (hasImage && !text) {
+                paragraphs.push(new Paragraph({
+                    children: [new TextRun({
+                        text: '[Image]',
+                        italics: true,
+                        size: 20,
+                        color: '8aa0b8'
+                    })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: {
+                        after: 120
+                    }
+                }));
+                continue;
+            }
+            if (tag === 'h1') paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                    text: text,
+                    bold: true,
+                    size: 32
+                })],
+                heading: HeadingLevel.HEADING_1,
+                spacing: {
+                    before: 240,
+                    after: 120
+                }
+            }));
+            else if (tag === 'h2') paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                    text: text,
+                    bold: true,
+                    size: 28
+                })],
+                heading: HeadingLevel.HEADING_2,
+                spacing: {
+                    before: 200,
+                    after: 100
+                }
+            }));
+            else if (tag === 'h3') paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                    text: text,
+                    bold: true,
+                    size: 26
+                })],
+                heading: HeadingLevel.HEADING_3,
+                spacing: {
+                    before: 180,
+                    after: 100
+                }
+            }));
+            else if (tag === 'ul' || tag === 'ol') {
+                var items = node.querySelectorAll('li');
+                for (var j = 0; j < items.length; j++) paragraphs.push(new Paragraph({
+                    children: [new TextRun({
+                        text: '• ' + items[j].textContent.trim(),
+                        size: 22
+                    })],
+                    spacing: {
+                        after: 60
+                    }
+                }));
+            } else if (tag === 'blockquote') paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                    text: text,
+                    italics: true,
+                    size: 22,
+                    color: '5a6b5e'
+                })],
+                indent: {
+                    left: 720
+                },
+                spacing: {
+                    after: 120
+                }
+            }));
+            else paragraphs.push(new Paragraph({
+                children: [new TextRun({
+                    text: text,
+                    size: 22
+                })],
+                spacing: {
+                    after: 120
+                }
+            }));
         }
-        var doc = new Document({ sections: [{ children: paragraphs }] });
+        var doc = new Document({
+            sections: [{
+                children: paragraphs
+            }]
+        });
         var blob = await Packer.toBlob(doc);
         saveAs(blob, title.replace(/[^a-z0-9]/gi, '_') + '.docx');
         toast('Word file downloaded!', 'success');
-    } catch (e) { toast('DOCX error: ' + e.message, 'error'); }
+    } catch (e) {
+        toast('DOCX error: ' + e.message, 'error');
+    }
 }
 
 function downloadHTML() {
     document.getElementById('downloadMenu').classList.remove('open');
-    if (typeof window.saveAs === 'undefined') { toast('FileSaver not loaded', 'error'); return; }
+    if (typeof window.saveAs === 'undefined') {
+        toast('FileSaver not loaded', 'error');
+        return;
+    }
     var title = document.getElementById('docTitle').value || 'Untitled';
     var abstract = document.getElementById('docAbstract').value || '';
     var author = USER.full_name || 'Author';
-    var date = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+    var date = new Date().toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    });
     var content = quill ? quill.root.innerHTML : '';
     var css = 'body{font-family:Georgia,serif;max-width:720px;margin:40px auto;padding:20px;color:#1c3a2b;line-height:1.8}';
     css += 'h1{text-align:center;font-size:2.4rem}.meta{text-align:center;color:#5a6b5e;margin-bottom:40px;border-bottom:2px solid #8b2e2e;padding-bottom:20px}';
@@ -752,7 +1056,9 @@ function downloadHTML() {
     doc += '<div class="meta"><h1>' + escapeHtml(title) + '</h1><p>by ' + escapeHtml(author) + ' &middot; ' + date + '</p></div>\n';
     if (abstract) doc += '<div class="abstract"><strong>Abstract:</strong> ' + escapeHtml(abstract) + '</div>\n';
     doc += content + '\n</body></html>';
-    var blob = new Blob([doc], { type: 'text/html' });
+    var blob = new Blob([doc], {
+        type: 'text/html'
+    });
     saveAs(blob, title.replace(/[^a-z0-9]/gi, '_') + '.html');
     toast('HTML downloaded!', 'success');
 }
@@ -775,19 +1081,32 @@ async function loadComments() {
             .eq('paper_id', PAPER_ID)
             .order('created_at', { ascending: false });
         if (res.error) throw res.error;
-        _comments = res.data || [];
+        var all = res.data || [];
+        _comments = filterCommentsForUser(all);
         renderComments();
     } catch (e) {
         var list = document.getElementById('cmtList');
         if (list) list.innerHTML = '<div class="cmt-empty">Comments did not load: ' + e.message + '</div>';
     }
 }
+function filterCommentsForUser(list) {
+    if (USER.role === 'admin' || USER.role === 'co_admin') return list;
+
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+        var c = list[i];
+        if (c.user_id === USER.id) { out.push(c); continue; }
+        if (!c.target_role) { out.push(c); continue; }
+        if (c.target_role === USER.role) { out.push(c); continue; }
+    }
+    return out;
+}
 
 function roleBadgeCmt(role) {
     var cls = 'role-' + (role || 'student');
     var label = role === 'admin' ? 'Admin' :
-                role === 'co_admin' ? 'Co-Admin' :
-                role === 'writer' ? 'Writer' : 'Student';
+        role === 'co_admin' ? 'Co-Admin' :
+        role === 'writer' ? 'Writer' : 'Student';
     return '<span class="cmt-role ' + cls + '">' + label + '</span>';
 }
 
@@ -803,35 +1122,92 @@ function renderComments() {
         var c = _comments[i];
         var clickable = !!c.anchor_text;
         html += '<div class="cmt-item" style="cursor:' + (clickable ? 'pointer' : 'default') + ';"' +
-                (clickable ? (' onclick="jumpToComment(\'' + c.id + '\')"') : '') + '>';
-        html +=   '<div class="cmt-item-top">';
-        html +=     '<span>' + roleBadgeCmt(c.user_role)+'</span>'+ '<span>' + escapeHtml(c.user_name ||  'Unknown') + '</span>';
-        html +=     '<span>' + fmtWhen(c.created_at) + '</span>';
-        html +=   '</div>';
+            (clickable ? (' onclick="jumpToComment(\'' + c.id + '\')"') : '') + '>';
+        html += '<div class="cmt-item-top">';
+        html += '<span>' + roleBadgeCmt(c.user_role) + '</span>' + '<span>' + escapeHtml(c.user_name || 'Unknown') + '</span>';
+        if (c.target_role) {
+            html += '<span style="color:#8b2e2e;font-weight:600;">&rarr; ' + capitalizeRole(c.target_role) + '</span>';
+        }
+        html += '<span>' + fmtWhen(c.created_at) + '</span>';
+        html += '</div>';
         if (clickable) {
             html += '<div style="font-size:.72rem;background:#f5f0e6;border-left:3px solid #c9a05a;padding:5px 8px;margin:4px 0;border-radius:3px;color:#5a6b5e;">"' +
-                    escapeHtml(c.anchor_text.slice(0, 100)) +
-                    (c.anchor_text.length > 100 ? '…' : '') + '"</div>';
+                escapeHtml(c.anchor_text.slice(0, 100)) +
+                (c.anchor_text.length > 100 ? '…' : '') + '"</div>';
         }
-        html +=   '<div class="cmt-item-text">' + escapeHtml(c.comment_text) + '</div>';
+        html += '<div class="cmt-item-text">' + escapeHtml(c.comment_text) + '</div>';
         html += '</div>';
     }
     list.innerHTML = html;
     list.scrollTop = list.scrollHeight;
 }
 
+function getTargetOptions(role) {
+    if (role === 'admin' || role === 'co_admin') {
+        return [{
+                value: 'student',
+                label: 'To: Student'
+            },
+            {
+                value: 'writer',
+                label: 'To: Writer'
+            }
+        ];
+    }
+    if (role === 'writer') {
+        return [{
+                value: 'student',
+                label: 'To: Student'
+            },
+            {
+                value: 'admin',
+                label: 'To: Admin'
+            }
+        ];
+    }
+    // student
+    return [{
+            value: 'writer',
+            label: 'To: Writer'
+        },
+        {
+            value: 'admin',
+            label: 'To: Admin'
+        }
+    ];
+}
+
+function populateTargetDropdown() {
+    var sel = document.getElementById('cmtTarget');
+    if (!sel) return;
+    var opts = getTargetOptions(USER.role);
+    var html = '';
+    for (var i = 0; i < opts.length; i++) {
+        html += '<option value="' + opts[i].value + '">' + opts[i].label + '</option>';
+    }
+    sel.innerHTML = html;
+}
+
+function capitalizeRole(r) {
+    if (!r) return '';
+    return r.charAt(0).toUpperCase() + r.slice(1);
+}
+
 async function postComment() {
     var input = document.getElementById('cmtInput');
+    var targetSel = document.getElementById('cmtTarget');
     if (!input) return;
     var text = input.value.trim();
     if (!text) return;
+    var targetRole = targetSel ? targetSel.value : null;
     try {
         var payload = {
             paper_id: PAPER_ID,
             user_id: USER.id,
             user_name: USER.full_name,
             user_role: USER.role,
-            comment_text: text
+            comment_text: text,
+            target_role: targetRole
         };
         if (_pendingAnchor) {
             payload.anchor_index = _pendingAnchor.index;
@@ -851,12 +1227,15 @@ async function postComment() {
 
 function openComments() {
     document.getElementById('cmtOverlay').classList.add('show');
+    populateTargetDropdown();
     loadComments();
     showAnchorPreview();
 }
+
 function closeComments() {
     document.getElementById('cmtOverlay').classList.remove('show');
 }
+
 function closeCommentsBg(e) {
     if (e.target && e.target.id === 'cmtOverlay') closeComments();
 }
@@ -876,7 +1255,7 @@ floatBtn.style.cssText = 'position:absolute;display:none;z-index:500;background:
 document.body.appendChild(floatBtn);
 
 if (quill) {
-    quill.on('selection-change', function(range) {
+    quill.on('selection-change', function (range) {
         if (range && range.length > 0) {
             var bounds = quill.getBounds(range.index, range.length);
             var editorRect = quill.root.getBoundingClientRect();
@@ -890,12 +1269,16 @@ if (quill) {
 }
 
 /* mousedown (click nahi) — taaki editor blur hone se pehle hi selection capture ho jaye */
-floatBtn.addEventListener('mousedown', function(e) {
+floatBtn.addEventListener('mousedown', function (e) {
     e.preventDefault();
     var range = quill.getSelection();
     if (!range || range.length === 0) return;
     var text = quill.getText(range.index, range.length).trim();
-    _pendingAnchor = { index: range.index, length: range.length, text: text.slice(0, 200) };
+    _pendingAnchor = {
+        index: range.index,
+        length: range.length,
+        text: text.slice(0, 200)
+    };
     floatBtn.style.display = 'none';
     openComments();
 });
@@ -907,7 +1290,7 @@ function showAnchorPreview() {
         box = document.createElement('div');
         box.id = 'anchorPreviewBox';
         box.style.cssText = 'font-size:.75rem;background:#f5f0e6;border-left:3px solid #c9a05a;padding:6px 9px;margin:0 1rem 8px 1rem;border-radius:4px;color:#5a6b5e;';
-        inputRow.parentNode.insertBefore(box, inputRow);   // row ke UPAR, andar nahi
+        inputRow.parentNode.insertBefore(box, inputRow); // row ke UPAR, andar nahi
     }
     if (!box) return;
     if (_pendingAnchor) {
@@ -920,6 +1303,7 @@ function showAnchorPreview() {
         box.style.display = 'none';
     }
 }
+
 function clearAnchor() {
     _pendingAnchor = null;
     showAnchorPreview();
@@ -928,7 +1312,11 @@ function clearAnchor() {
 /* jab comment par click karo, uska section editor me highlight ho */
 function jumpToComment(id) {
     var c = null;
-    for (var i = 0; i < _comments.length; i++) if (_comments[i].id === id) { c = _comments[i]; break; }
+    for (var i = 0; i < _comments.length; i++)
+        if (_comments[i].id === id) {
+            c = _comments[i];
+            break;
+        }
     if (!c || c.anchor_index == null || c.anchor_length == null || !quill) return;
 
     quill.setSelection(c.anchor_index, c.anchor_length, 'user');
@@ -944,10 +1332,14 @@ function jumpToComment(id) {
 
     /* 2 second ka yellow flash — sirf selection se kabhi kabhi kam noticeable lagta hai */
     try {
-        quill.formatText(c.anchor_index, c.anchor_length, { background: '#fff3a3' }, 'silent');
-        setTimeout(function() {
-            quill.formatText(c.anchor_index, c.anchor_length, { background: false }, 'silent');
+        quill.formatText(c.anchor_index, c.anchor_length, {
+            background: '#fff3a3'
+        }, 'silent');
+        setTimeout(function () {
+            quill.formatText(c.anchor_index, c.anchor_length, {
+                background: false
+            }, 'silent');
         }, 2000);
-    } catch (e) { /* non-critical, background format skip ho gaya to bhi selection dikhega */ }
+    } catch (e) {
+        /* non-critical, background format skip ho gaya to bhi selection dikhega */ }
 }
-

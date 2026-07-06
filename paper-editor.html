@@ -26,7 +26,8 @@
     <nav class="ed-top">
         <div class="container">
             <div class="ed-top-inner">
-                <a href="student-dashboard.html" id="edBackLink" class="ed-back" data-testid="back-btn">Back to Dashboard</a>
+                <a href="student-dashboard.html" id="edBackLink" class="ed-back" data-testid="back-btn">Back to
+                    Dashboard</a>
 
                 <div style="display:flex; align-items:center; gap:1rem;">
                     <span class="edit-badge" id="editBadge">Edit Mode</span>
@@ -41,7 +42,8 @@
                     <button class="ed-btn" onclick="openHistory()" data-testid="history-btn">⟲ History</button>
                     <button class="ed-btn" onclick="manualSave()" data-testid="save-btn">Save</button>
                     <div class="download-wrap">
-                        <button class="ed-btn primary" onclick="toggleDownload(event)" data-testid="download-btn">Download</button>
+                        <button class="ed-btn primary" onclick="toggleDownload(event)"
+                            data-testid="download-btn">Download</button>
                         <div class="download-menu" id="downloadMenu">
                             <button onclick="downloadPDF()">Download as PDF</button>
                             <button onclick="downloadDOCX()">Download as Word (.docx)</button>
@@ -55,8 +57,10 @@
 
     <div class="doc-wrap">
         <div class="doc-title-box">
-            <textarea class="doc-title-input" id="docTitle" placeholder="Your paper title" rows="1" autocomplete="off" data-testid="doc-title" oninput="autoGrowTitle(this)"></textarea>
-            <textarea class="doc-abstract-input" id="docAbstract" placeholder="Write a brief abstract (2-3 sentences)" rows="2" data-testid="doc-abstract"></textarea>
+            <textarea class="doc-title-input" id="docTitle" placeholder="Your paper title" rows="1" autocomplete="off"
+                data-testid="doc-title" oninput="autoGrowTitle(this)"></textarea>
+            <textarea class="doc-abstract-input" id="docAbstract" placeholder="Write a brief abstract (2-3 sentences)"
+                rows="2" data-testid="doc-abstract"></textarea>
 
             <div class="doc-meta-row">
                 <div class="meta-item">
@@ -152,6 +156,10 @@
             <div class="cmt-list" id="cmtList">
                 <div class="cmt-empty">Loading…</div>
             </div>
+            <div class="cmt-target-row" style="padding:0 1rem;">
+                <select id="cmtTarget" class="cmt-target-select"
+                    style="width:100%;padding:6px 8px;border:1px solid #d8d0bd;border-radius:5px;font-size:.8rem;background:#fff;"></select>
+            </div>
             <div class="cmt-input-row">
                 <textarea id="cmtInput" placeholder="Write a comment..." rows="2"></textarea>
                 <button class="ed-btn primary" onclick="postComment()">Post</button>
@@ -161,20 +169,20 @@
 
     <script>
         // Auto-grow textarea title so long titles wrap naturally
-        function autoGrowTitle(el){
-            if(!el) return;
+        function autoGrowTitle(el) {
+            if (!el) return;
             el.style.height = 'auto';
             el.style.height = (el.scrollHeight) + 'px';
         }
         // Initial grow + after content loaded
-        window.addEventListener('load', function(){
+        window.addEventListener('load', function () {
             var t = document.getElementById('docTitle');
-            if(t){
+            if (t) {
                 autoGrowTitle(t);
                 // Watch for programmatic value changes (paper-editor.js sets value after fetch)
                 var lastVal = t.value;
-                setInterval(function(){
-                    if(t.value !== lastVal){ lastVal = t.value; autoGrowTitle(t); }
+                setInterval(function () {
+                    if (t.value !== lastVal) { lastVal = t.value; autoGrowTitle(t); }
                 }, 400);
             }
         });
