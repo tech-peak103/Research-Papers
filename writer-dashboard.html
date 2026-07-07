@@ -186,6 +186,16 @@
         function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
         function roleBadge(r) { var l = r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; return '<span class="role-badge role-' + (r || 'student') + '">' + l + '</span>'; }
 
+        /* ───────── AI REPORT (view-only for writer) ───────── */
+        function aiReportCell(p) {
+            var val = p.ai_report_percent;
+            var hasVal = (val !== null && val !== undefined && val !== '');
+            if (!hasVal) return '<span class="psub">— not set —</span>';
+            var isGreen = (Number(val) === 0);
+            var dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:' + (isGreen ? '#22C55E' : '#EF4444') + ';"></span>';
+            return '<span style="display:inline-flex;align-items:center;">' + dot + Number(val) + '%</span>';
+        }
+
         document.getElementById('userName').textContent = USER.full_name;
         document.getElementById('userId').textContent = '@' + USER.username;
         document.getElementById('userAv').textContent = initials(USER.full_name);
@@ -276,7 +286,7 @@
                     + '</p></div>';
                 return;
             }
-            var h = '<div class="card-wrap"><table><thead><tr><th>Title &amp; Author</th><th>Track</th><th>Words</th><th>Status</th><th>Last Edit</th><th></th></tr></thead><tbody>';
+            var h = '<div class="card-wrap"><table><thead><tr><th>Title &amp; Author</th><th>Track</th><th>Words</th><th>Status</th><th>AI Report</th><th>Last Edit</th><th></th></tr></thead><tbody>';
             data.forEach(function (p) {
                 var lastEd = p.last_editor_name ? roleBadge(p.last_editor_role) + ' ' + esc(p.last_editor_name) + '<div class="last-ed">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>' : '<span class="pauthor">' + fmtDate(p.updated_at) + '</span>';
                 h += '<tr class="clickable" onclick="openPaper(\'' + p.id + '\')">'
@@ -284,6 +294,7 @@
                     + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
                     + '<td>' + (p.word_count || 0) + '</td>'
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
+                    + '<td>' + aiReportCell(p) + '</td>'
                     + '<td>' + lastEd + '</td>'
                     + '<td><div class="row-actions"><button class="view-btn" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit →</button>' + delBtn(p.id) + '</div></td>'
                     + '</tr>';

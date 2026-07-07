@@ -429,7 +429,7 @@
             h += '<div class="card-wrap"><table><thead><tr>'
                 + '<th>Title &amp; Author</th><th>Track</th>'
                 + (IS_CO_ADMIN ? '' : '<th>Assigned Writer(s)</th>')
-                + '<th>Status</th><th>Approved</th><th>Last Edit</th><th></th>'
+                + '<th>Status</th><th>Approved</th><th>AI Report</th><th>Last Edit</th><th></th>'
                 + '</tr></thead><tbody>';
             rows.forEach(function (p) {
                 var lastEd = p.last_editor_name ? (roleBadge(p.last_editor_role) + ' ' + esc(p.last_editor_name) + '<div class="feed-time">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>') : '<span class="psub">—</span>';
@@ -453,6 +453,7 @@
                     + (IS_CO_ADMIN ? '' : '<td>' + tCell + '</td>')
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
                     + '<td>' + approvalCell(p) + '</td>'
+                    + '<td>' + aiReportCell(p) + '</td>'
                     + '<td>' + lastEd + '</td>'
                     + '<td><div class="row-actions"><button class="edit-link" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit</button>' + (IS_FULL_ADMIN ? delBtn(p.id) : '') + '</div></td>'
                     + '</tr>';
@@ -461,10 +462,113 @@
             box.innerHTML = h;
         }
 
+        /* ───────── AI REPORT (admin can edit + see history; writer view-only in writer dashboard) ───────── */
+        var AI_UI_STATE = {}; // { [paperId]: { open: bool, editing: bool } }
+
+        function aiReportCell(p) {
+            var val = p.ai_report_percent;
+            var hasVal = (val !== null && val !== undefined && val !== '');
+            var dot = '';
+            if (hasVal) {
+                var isGreen = (Number(val) === 0);
+                dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:' + (isGreen ? '#22C55E' : '#EF4444') + ';"></span>';
+            }
+            var displayVal = hasVal ? (Number(val) + '%') : '— No—';
+            var state = AI_UI_STATE[p.id] || {};
+
+            var arrowBtn = IS_FULL_ADMIN
+                ? '<button onclick="event.stopPropagation();toggleAIDropdown(\'' + p.id + '\')" title="History / Edit" '
+                + 'style="margin-left:6px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;font-size:.7rem;line-height:1;padding:2px 6px;cursor:pointer;">▾</button>'
+                : '';
+
+            var html = '<div class ="aiReport" onclick="event.stopPropagation();">'
+                + '<span style="display:inline-flex;align-items:center;">' + dot + displayVal + '</span>' + arrowBtn;
+
+            if (state.open && IS_FULL_ADMIN) {
+                html += '<div style="margin-top:6px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;padding:8px;min-width:150px;">';
+
+                if (state.editing) {
+                    html += '<div style="display:flex;gap:5px;align-items:center;">'
+                        + '<input type="number" min="0" max="100" step="1" placeholder="0-100" value="' + (hasVal ? Number(val) : '') + '" '
+                        + 'style="width:60px;font-size:.75rem;padding:3px 5px;border:1px solid #cbd5e1;border-radius:4px;" '
+                        + 'id="aiInput_' + p.id + '">'
+                        + '<button class="mini-btn" onclick="saveAIReport(\'' + p.id + '\')">Save</button>'
+                        + '<button class="mini-btn" onclick="cancelAIEdit(\'' + p.id + '\')">Cancel</button>'
+                        + '</div>';
+                } else {
+                    var hist = Array.isArray(p.ai_report_history) ? p.ai_report_history.slice().reverse() : [];
+                    html += '<div style="font-size:.7rem;color:#64748b;margin-bottom:4px;">Report history</div>';
+                    if (hasVal) {
+                        html += '<div style="font-size:.75rem;margin-bottom:2px;"><strong>' + Number(val) + '%</strong> <span style="color:#64748b;">(current)</span></div>';
+                    }
+                    if (!hist.length) {
+                        html += '<div style="font-size:.72rem;color:#94a3b8;">' + (hasVal ? 'No number had been saved before this.' : 'No report number has been saved yet.') + '</div>';
+                    } else {
+                        hist.forEach(function (h) {
+                            html += '<div style="font-size:.72rem;color:#475569;">' + (h && h.value != null ? Number(h.value) + '%' : '—') + ' <span style="color:#94a3b8;">— ' + fmtWhen(h ? h.at : null) + '</span></div>';
+                        });
+                    }
+                    html += '<button class="mini-btn" style="margin-top:6px;" onclick="startAIEdit(\'' + p.id + '\')">Edit</button>';
+                }
+                html += '</div>';
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        function toggleAIDropdown(paperId) {
+            var s = AI_UI_STATE[paperId] || {};
+            s.open = !s.open;
+            if (!s.open) s.editing = false;
+            AI_UI_STATE[paperId] = s;
+            renderPapers();
+        }
+        function startAIEdit(paperId) {
+            var s = AI_UI_STATE[paperId] || {};
+            s.editing = true;
+            AI_UI_STATE[paperId] = s;
+            renderPapers();
+        }
+        function cancelAIEdit(paperId) {
+            var s = AI_UI_STATE[paperId] || {};
+            s.editing = false;
+            AI_UI_STATE[paperId] = s;
+            renderPapers();
+        }
+
+        async function saveAIReport(paperId) {
+            if (!IS_FULL_ADMIN) return;
+            var input = document.getElementById('aiInput_' + paperId);
+            if (!input) return;
+            var raw = input.value.trim();
+            if (raw === '') { toast('Enter the number (0-100)', 'error'); return; }
+            var num = Number(raw);
+            if (isNaN(num) || num < 0 || num > 100) { toast('Only numbers between 0 and 100', 'error'); return; }
+
+            var paper = null;
+            for (var i = 0; i < PAPERS.length; i++) { if (PAPERS[i].id === paperId) { paper = PAPERS[i]; break; } }
+            var prevVal = paper ? paper.ai_report_percent : null;
+            var prevHasVal = (prevVal !== null && prevVal !== undefined && prevVal !== '');
+            var history = (paper && Array.isArray(paper.ai_report_history)) ? paper.ai_report_history.slice() : [];
+            if (prevHasVal) {
+                history.push({ value: Number(prevVal), at: new Date().toISOString() });
+            }
+
+            try {
+                var res = await sb.from('papers').update({ ai_report_percent: num, ai_report_history: history }).eq('id', paperId);
+                if (res.error) throw res.error;
+                if (paper) { paper.ai_report_percent = num; paper.ai_report_history = history; }
+                AI_UI_STATE[paperId] = { open: true, editing: false };
+                toast('AI Report saved ✓', 'success');
+                renderPapers();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
         async function assignWriter(paperId, writerId) {
             if (!CAN_ASSIGN || !writerId) return;
             if (COLLABS.some(function (c) { return c.paper_id === paperId && c.judge_id === writerId; })) {
-                toast('Ye writer pehle se assigned hai', 'error'); return;
+                toast('This writer is already assigned.', 'error'); return;
             }
             try {
                 var res = await sb.from('paper_collaborators')
@@ -478,12 +582,12 @@
 
         async function unassignWriter(paperId, writerId) {
             if (!CAN_ASSIGN) return;
-            if (!confirm('Is writer ko paper se hatayein?')) return;
+            if (!confirm('Remove this writer from the paper?')) return;
             try {
                 var res = await sb.from('paper_collaborators').delete().eq('paper_id', paperId).eq('judge_id', writerId);
                 if (res.error) throw res.error;
                 COLLABS = COLLABS.filter(function (c) { return !(c.paper_id === paperId && c.judge_id === writerId); });
-                toast('Hata diya', 'success');
+                toast('Removed', 'success');
                 renderPapers(); renderWriters();
             } catch (e) { toast('Error: ' + e.message, 'error'); }
         }
