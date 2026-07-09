@@ -61,18 +61,6 @@
                 </button>
             </nav>
 
-            <div class="sb-section">Actions</div>
-            <nav class="sb-nav">
-                <button class="sb-item" onclick="openNewModal()" data-testid="new-paper-btn"
-                    style="color: var(--role-student); font-weight: 600;">
-                    <span class="sb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19" />
-                            <line x1="5" y1="12" x2="19" y2="12" />
-                        </svg></span>
-                    <span class="sb-label">New Paper</span>
-                </button>
-            </nav>
-
             <div class="sb-spacer"></div>
 
             <div class="sb-profile">
@@ -116,7 +104,6 @@
                         <h1>Welcome back, <em id="welcomeName">Student</em></h1>
                         <p>Write, edit, and track your research papers and essays here.</p>
                     </div>
-                    <button class="new-btn" onclick="openNewModal()" data-testid="new-paper-cta">+ New Paper</button>
                 </div>
 
                 <div class="stats-bar">
@@ -157,8 +144,6 @@
                     </div>
                 </div>
 
-                <div id="mentorBanner" class="mentor-banner" style="display:none;"></div>
-
                 <div class="tab-row">
                     <div class="tab active" onclick="setView('all', event)">All</div>
                     <div class="tab" onclick="setView('draft', event)">Drafts</div>
@@ -171,29 +156,6 @@
                 </div>
             </div>
         </main>
-    </div>
-
-    <!-- ───── NEW PAPER MODAL ───── -->
-    <div class="modal-overlay" id="newModal" onclick="newModalBg(event)">
-        <div class="modal-box">
-            <h2>New Paper</h2>
-            <div class="msub">Choose a title and track — then the editor will open.</div>
-            <div class="fld">
-                <label>Title</label>
-                <input type="text" id="newTitle" placeholder="e.g. The Future of Renewable Energy" autocomplete="off">
-            </div>
-            <div class="fld">
-                <label>Track</label>
-                <select id="newTrack">
-                    <option value="research">Research Paper</option>
-                    <option value="essay">Essay</option>
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button class="btn-ghost" onclick="closeNewModal()">Cancel</button>
-                <button class="btn-solid" id="newCreateBtn" onclick="createPaper()">Create &amp; Open →</button>
-            </div>
-        </div>
     </div>
 
     <div id="toast"></div>
@@ -222,13 +184,16 @@
             SEARCH_TERM = e.target.value.trim().toLowerCase();
             render();
         });
-        var WRITER_BY_PAPER = {};
-        var MY_WRITERS = {};
 
         function initials(n) { return (n || 'S').split(' ').map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
         function fmtDate(d) { if (!d) return '—'; try { return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
         function fmtWhen(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
         function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+        function paperTypeLabel(p) {
+            if (p.paper_type === 'competition') return 'Competition: ' + (p.competition_name || '—');
+            if (p.paper_type === 'academic') return 'Subject: ' + (p.subject || '—');
+            return '';
+        }
 
         document.getElementById('userName').textContent = USER.full_name;
         document.getElementById('userId').textContent = '@' + (USER.username || '');
@@ -249,59 +214,13 @@
                 if (res.error) throw res.error;
                 MY_PAPERS = res.data || [];
 
-                await loadMyWriters();
-
                 document.getElementById('statTotal').textContent = MY_PAPERS.length;
                 document.getElementById('statDraft').textContent = MY_PAPERS.filter(function (p) { return (p.status || 'draft') === 'draft'; }).length;
                 document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
                 document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
 
-                renderMentorBanner();
                 render();
             } catch (e) { list.innerHTML = '<div class="loading">Error: ' + e.message + '</div>'; }
-        }
-
-        async function loadMyWriters() {
-            WRITER_BY_PAPER = {}; MY_WRITERS = {};
-            var ids = MY_PAPERS.map(function (p) { return p.id; });
-            if (!ids.length) return;
-            try {
-                var col = await sb.from('paper_collaborators').select('paper_id, judge_id').in('paper_id', ids);
-                if (!col || col.error || !col.data || !col.data.length) return;
-
-                var judgeIds = {};
-                col.data.forEach(function (c) {
-                    (WRITER_BY_PAPER[c.paper_id] = WRITER_BY_PAPER[c.paper_id] || []).push(c.judge_id);
-                    judgeIds[c.judge_id] = true;
-                });
-                var jids = Object.keys(judgeIds);
-                if (!jids.length) return;
-
-                var tr = await sb.from('registrations').select('id, full_name, username, role').in('id', jids);
-                if (!tr || tr.error || !tr.data) return;
-                var tmap = {};
-                tr.data.forEach(function (t) { tmap[t.id] = t; });
-
-                Object.keys(WRITER_BY_PAPER).forEach(function (pid) {
-                    WRITER_BY_PAPER[pid] = WRITER_BY_PAPER[pid]
-                        .map(function (jid) { return tmap[jid]; })
-                        .filter(Boolean);
-                    WRITER_BY_PAPER[pid].forEach(function (t) { MY_WRITERS[t.id] = t; });
-                });
-            } catch (e) { }
-        }
-
-        function renderMentorBanner() {
-            var el = document.getElementById('mentorBanner');
-            if (!MY_PAPERS.length) { el.style.display = 'none'; return; }
-            el.style.display = 'block';
-            var writers = Object.keys(MY_WRITERS).map(function (k) { return MY_WRITERS[k]; });
-            if (!writers.length) {
-                el.innerHTML = '<span class="mb-label">Reviewing writer</span>No writer has been assigned to any of your papers yet. The admin will assign one, and then it will appear here.';
-            } else {
-                var names = writers.map(function (t) { return '<strong>' + esc(t.full_name) + '</strong>'; }).join(', ');
-                el.innerHTML = '<span class="mb-label">Your reviewing writer' + (writers.length > 1 ? 's' : '') + '</span>' + names;
-            }
         }
 
         function setView(v, e) {
@@ -325,12 +244,6 @@
             render();
         }
 
-        function writerCell(pid) {
-            var list = WRITER_BY_PAPER[pid] || [];
-            if (!list.length) return '<span class="writer-cell"><span class="none">Not assigned yet</span></span>';
-            return '<span class="writer-cell">' + list.map(function (t) { return '<span class="writer-tag">' + esc(t.full_name) + '</span>'; }).join('') + '</span>';
-        }
-
         function render() {
             var list = document.getElementById('papersList');
             var data = MY_PAPERS;
@@ -340,61 +253,28 @@
             if (SEARCH_TERM) {
                 data = data.filter(function (p) {
                     var title = (p.title || '').toLowerCase();
-                    var writers = (WRITER_BY_PAPER[p.id] || []).map(function (t) { return (t.full_name || '').toLowerCase(); }).join(' ');
-                    return title.indexOf(SEARCH_TERM) !== -1 || writers.indexOf(SEARCH_TERM) !== -1;
+                    return title.indexOf(SEARCH_TERM) !== -1;
                 });
             }
             if (!data.length) {
                 list.innerHTML = '<div class="empty-state"><div class="em-icon">✒️</div><h3>No papers yet</h3><p>'
-                    + (VIEW === 'all' ? 'Start writing your first paper.' : 'There is nothing in this filter.')
-                    + '</p>' + (VIEW === 'all' ? '<button class="new-btn" onclick="openNewModal()">+ New Paper</button>' : '') + '</div>';
+                    + (VIEW === 'all' ? 'Your admin will create a paper for you here.' : 'There is nothing in this filter.')
+                    + '</p></div>';
                 return;
             }
-            var h = '<div class="card-wrap"><table><thead><tr><th>Title</th><th>Track</th><th>Reviewing Writer</th><th>Words</th><th>Status</th><th>Last Edit</th><th></th></tr></thead><tbody>';
+            var h = '<div class="card-wrap"><table><thead><tr><th>Title</th><th>Track</th><th>Words</th><th>Status</th><th></th></tr></thead><tbody>';
             data.forEach(function (p) {
-                var lastEd = p.last_editor_name
-                    ? esc(p.last_editor_name) + ' (' + (p.last_editor_role === 'writer' ? 'Writer' : p.last_editor_role === 'admin' ? 'Admin' : p.last_editor_role === 'co_admin' ? 'Co-Admin' : 'You') + ')<div class="last-ed">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>'
-                    : '<span class="psub">' + fmtDate(p.updated_at) + '</span>';
+                var typeLbl = paperTypeLabel(p);
                 h += '<tr class="clickable" onclick="openPaper(\'' + p.id + '\')">'
-                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div>' + (p.abstract ? '<div class="psub">' + esc(String(p.abstract).slice(0, 80)) + (String(p.abstract).length > 80 ? '…' : '') + '</div>' : '') + '</td>'
+                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div>' + (typeLbl ? '<div class="psub">' + esc(typeLbl) + '</div>' : '') + (p.abstract ? '<div class="psub">' + esc(String(p.abstract).slice(0, 80)) + (String(p.abstract).length > 80 ? '…' : '') + '</div>' : '') + '</td>'
                     + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
-                    + '<td>' + writerCell(p.id) + '</td>'
                     + '<td>' + (p.word_count || 0) + '</td>'
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
-                    + '<td>' + lastEd + '</td>'
                     + '<td><div class="row-actions"><button class="view-btn" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit →</button>' + delBtn(p.id) + '</div></td>'
                     + '</tr>';
             });
             h += '</tbody></table></div>';
             list.innerHTML = h;
-        }
-
-        function openNewModal() { document.getElementById('newTitle').value = ''; document.getElementById('newTrack').value = 'research'; document.getElementById('newModal').classList.add('show'); setTimeout(function () { document.getElementById('newTitle').focus(); }, 50); }
-        function closeNewModal() { document.getElementById('newModal').classList.remove('show'); }
-        function newModalBg(e) { if (e.target && e.target.id === 'newModal') closeNewModal(); }
-
-        async function createPaper() {
-            var title = document.getElementById('newTitle').value.trim() || 'Untitled Paper';
-            var track = document.getElementById('newTrack').value;
-            if (!IS_LIVE) { toast('Supabase config missing', 'error'); return; }
-            var btn = document.getElementById('newCreateBtn');
-            btn.disabled = true; btn.textContent = 'Creating…';
-            try {
-                var res = await sb.from('papers').insert({
-                    student_id: USER.id,
-                    title: title,
-                    abstract: '',
-                    track: track,
-                    status: 'draft',
-                    content: '',
-                    word_count: 0
-                }).select().single();
-                if (res.error) throw res.error;
-                window.location.href = 'paper-editor.html?id=' + res.data.id;
-            } catch (e) {
-                toast('Error: ' + e.message, 'error');
-                btn.disabled = false; btn.textContent = 'Create & Open →';
-            }
         }
 
         function delBtn(id) {
@@ -416,7 +296,6 @@
                 document.getElementById('statDraft').textContent = MY_PAPERS.filter(function (p) { return (p.status || 'draft') === 'draft'; }).length;
                 document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
                 document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
-                renderMentorBanner();
                 render();
                 toast('Paper deleted ✓', 'success');
             } catch (e) { toast('Delete error: ' + e.message, 'error'); }
@@ -424,8 +303,6 @@
 
         function openPaper(id) { window.location.href = 'paper-editor.html?id=' + id; }
         function doLogout() { localStorage.removeItem('sc_user'); sessionStorage.removeItem('sc_user'); window.location.href = 'index.html'; }
-
-        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeNewModal(); });
 
         loadPapers();
     </script>

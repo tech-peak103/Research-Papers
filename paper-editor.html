@@ -19,6 +19,49 @@
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
+    <style>
+        .editor-side-tabs {
+            position: fixed;
+            left: 0;
+            top: 64px;
+            bottom: 0;
+            width: 120px;
+            background: #f8f9f6;
+            border-right: 1px solid #e3e0d4;
+            padding: 1rem .6rem;
+            display: none;
+            flex-direction: column;
+            gap: .5rem;
+            z-index: 50;
+            overflow-y: auto;
+        }
+        .editor-side-tabs.show { display: flex; }
+        .editor-side-tab {
+            padding: .6rem .7rem;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            background: transparent;
+            text-align: left;
+            font-size: .82rem;
+            font-weight: 600;
+            color: #5a6b5e;
+            cursor: pointer;
+        }
+        .editor-side-tab:hover { background: #eef1ea; }
+        .editor-side-tab.active { background: #1c3a2b; color: #fff; }
+        body.side-tabs-active .doc-wrap { margin-left: 120px; }
+        @media (max-width: 900px) {
+            .editor-side-tabs {
+                position: static;
+                width: auto;
+                flex-direction: row;
+                border-right: none;
+                border-bottom: 1px solid #e3e0d4;
+            }
+            body.side-tabs-active .doc-wrap { margin-left: 0; }
+        }
+    </style>
+
 </head>
 
 <body class="page-editor">
@@ -54,6 +97,12 @@
             </div>
         </div>
     </nav>
+
+    <!-- Only visible to admin / co-admin: switch between the student's editor and the writer's editor -->
+    <aside class="editor-side-tabs" id="editorSideTabs">
+        <button class="editor-side-tab active" id="tabStudentBtn" onclick="switchSide('student')">Student</button>
+        <button class="editor-side-tab" id="tabWriterBtn" onclick="switchSide('writer')">Writer</button>
+    </aside>
 
     <div class="doc-wrap">
         <div class="doc-title-box">

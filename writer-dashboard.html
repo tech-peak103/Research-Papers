@@ -38,7 +38,7 @@
                             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                         </svg></span>
-                    <span class="sb-label">My Students</span>
+                    <span class="sb-label">Assigned Papers</span>
                 </button>
                 <button class="sb-item" data-view="under_review" onclick="sbSetView('under_review', event)"
                     data-testid="nav-review">
@@ -103,15 +103,6 @@
                 </div>
 
                 <div class="stats-bar">
-                    <div class="stat-card icon-teal">
-                        <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                            </svg></div>
-                        <div class="label">My Students</div>
-                        <div class="num" id="statMyStudents">—</div>
-                    </div>
                     <div class="stat-card icon-purple">
                         <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
@@ -141,7 +132,7 @@
                 </div>
 
                 <div class="tab-row">
-                    <div class="tab active" onclick="setView('mine', event)">My Students</div>
+                    <div class="tab active" onclick="setView('mine', event)">Assigned Papers</div>
                     <div class="tab" onclick="setView('under_review', event)">Under Review</div>
                     <div class="tab" onclick="setView('completed', event)">Completed</div>
                 </div>
@@ -185,6 +176,11 @@
         function fmtWhen(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
         function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
         function roleBadge(r) { var l = r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; return '<span class="role-badge role-' + (r || 'student') + '">' + l + '</span>'; }
+        function paperTypeLabel(p) {
+            if (p.paper_type === 'competition') return 'Competition: ' + (p.competition_name || '—');
+            if (p.paper_type === 'academic') return 'Subject: ' + (p.subject || '—');
+            return '';
+        }
 
         /* ───────── AI REPORT (view-only for writer) ───────── */
         function aiReportCell(p) {
@@ -205,7 +201,6 @@
         function toast(msg, type) { type = type || ''; var el = document.getElementById('toast'); el.textContent = msg; el.className = 'show ' + type; clearTimeout(_tt); _tt = setTimeout(function () { el.className = ''; }, 3000); }
 
         function setStatsZero() {
-            document.getElementById('statMyStudents').textContent = 0;
             document.getElementById('statMyPapers').textContent = 0;
             document.getElementById('statReview').textContent = 0;
             document.getElementById('statDone').textContent = 0;
@@ -227,16 +222,12 @@
                 }
 
                 var res = await sb.from('papers')
-                    .select('*, registrations:student_id(full_name, username)')
+                    .select('*')
                     .in('id', ids)
                     .order('updated_at', { ascending: false });
                 if (res.error) throw res.error;
                 MY_PAPERS = res.data || [];
 
-                var myStudents = {};
-                MY_PAPERS.forEach(function (p) { if (p.student_id) myStudents[p.student_id] = true; });
-
-                document.getElementById('statMyStudents').textContent = Object.keys(myStudents).length;
                 document.getElementById('statMyPapers').textContent = MY_PAPERS.length;
                 document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
                 document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;
@@ -260,7 +251,7 @@
             if (e && e.currentTarget) e.currentTarget.classList.add('active');
             // Sync tabs
             var tabs = document.querySelectorAll('.tab');
-            var labels = { 'mine': 'My Students', 'under_review': 'Under Review', 'completed': 'Completed' };
+            var labels = { 'mine': 'Assigned Papers', 'under_review': 'Under Review', 'completed': 'Completed' };
             tabs.forEach(function (t) { t.classList.toggle('active', t.textContent.trim() === labels[v]); });
             render();
         }
@@ -273,26 +264,25 @@
             if (SEARCH_TERM) {
                 data = data.filter(function (p) {
                     var title = (p.title || '').toLowerCase();
-                    var student = ((p.registrations ? p.registrations.full_name : '') || '').toLowerCase();
-                    var username = ((p.registrations ? p.registrations.username : '') || '').toLowerCase();
-                    return title.indexOf(SEARCH_TERM) !== -1 || student.indexOf(SEARCH_TERM) !== -1 || username.indexOf(SEARCH_TERM) !== -1;
+                    return title.indexOf(SEARCH_TERM) !== -1;
                 });
             }
             if (!data.length) {
                 list.innerHTML = '<div class="empty-state"><div class="em-icon">📋</div><h3>No papers here</h3><p>'
                     + (VIEW === 'mine'
-                        ? 'The admin has not assigned any paper to you yet. When the admin assigns a student\'s paper to you, it will appear here.'
+                        ? 'The admin has not assigned any paper to you yet. When the admin assigns a paper to you, it will appear here.'
                         : 'There is nothing in this filter.')
                     + '</p></div>';
                 return;
             }
-            var h = '<div class="card-wrap"><table><thead><tr><th>Title &amp; Author</th><th>Track</th><th>Words</th><th>Status</th><th>AI Report</th><th>Last Edit</th><th></th></tr></thead><tbody>';
+            var h = '<div class="card-wrap"><table><thead><tr><th>Title</th><th>Track</th><th>Words</th><th>Status</th><th>AI Report</th><th>Last Edit</th><th></th></tr></thead><tbody>';
             data.forEach(function (p) {
-                var lastEd = p.last_editor_name ? roleBadge(p.last_editor_role) + ' ' + esc(p.last_editor_name) + '<div class="last-ed">' + fmtWhen(p.last_edited_at || p.updated_at) + '</div>' : '<span class="pauthor">' + fmtDate(p.updated_at) + '</span>';
+                var lastEd = p.writer_last_editor_name ? roleBadge(p.writer_last_editor_role) + ' ' + esc(p.writer_last_editor_name) + '<div class="last-ed">' + fmtWhen(p.writer_last_edited_at || p.updated_at) + '</div>' : '<span class="pauthor">' + fmtDate(p.updated_at) + '</span>';
+                var typeLbl = paperTypeLabel(p);
                 h += '<tr class="clickable" onclick="openPaper(\'' + p.id + '\')">'
-                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div><div class="pauthor">by ' + esc(p.registrations ? p.registrations.full_name : '—') + ' (@' + esc(p.registrations ? p.registrations.username : '—') + ')</div></td>'
+                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div>' + (typeLbl ? '<div class="psub">' + esc(typeLbl) + '</div>' : '') + '</td>'
                     + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
-                    + '<td>' + (p.word_count || 0) + '</td>'
+                    + '<td>' + (p.writer_word_count || 0) + '</td>'
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
                     + '<td>' + aiReportCell(p) + '</td>'
                     + '<td>' + lastEd + '</td>'
@@ -318,8 +308,6 @@
                 if (res.error) throw res.error;
 
                 MY_PAPERS = MY_PAPERS.filter(function (p) { return p.id !== id; });
-                var myStudents = {}; MY_PAPERS.forEach(function (p) { if (p.student_id) myStudents[p.student_id] = true; });
-                document.getElementById('statMyStudents').textContent = Object.keys(myStudents).length;
                 document.getElementById('statMyPapers').textContent = MY_PAPERS.length;
                 document.getElementById('statReview').textContent = MY_PAPERS.filter(function (p) { return p.status === 'under_review'; }).length;
                 document.getElementById('statDone').textContent = MY_PAPERS.filter(function (p) { return p.status === 'completed' || p.status === 'awarded'; }).length;

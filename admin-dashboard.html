@@ -11,6 +11,19 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <style>
+        .wizard-box { max-width: 480px; }
+        .wiz-choice-grid { display: flex; flex-direction: column; gap: .75rem; margin: 1rem 0; }
+        .wiz-choice { text-align: left; padding: 1rem 1.1rem; border: 1px solid #d8d0bd; border-radius: 10px; background: #fff; cursor: pointer; transition: all .15s; }
+        .wiz-choice:hover { border-color: #1c3a2b; background: #f8f9f6; }
+        .wiz-choice-title { font-weight: 600; font-size: .95rem; color: #1c3a2b; }
+        .wiz-choice-sub { font-size: .78rem; color: #6b7b6f; margin-top: 2px; }
+        .wiz-list { display: flex; flex-direction: column; gap: .5rem; margin: 1rem 0; max-height: 280px; overflow-y: auto; }
+        .wiz-list-item { text-align: left; padding: .65rem .9rem; border: 1px solid #d8d0bd; border-radius: 8px; background: #fff; cursor: pointer; font-size: .85rem; color: #1c3a2b; }
+        .wiz-list-item:hover { border-color: #1c3a2b; }
+        .wiz-list-item.selected { border-color: #1c3a2b; background: #eef3ee; font-weight: 600; }
+        .wiz-step { display: none; }
+    </style>
 </head>
 
 <body class="dash-admin">
@@ -115,6 +128,7 @@
                         <h1>Welcome back, <em id="welcomeName">Admin</em></h1>
                         <p>View the entire system here — records of students, writers, papers, and every edit.</p>
                     </div>
+                    <button class="new-btn" id="newPaperCta" onclick="openNewPaperModal()" data-testid="new-paper-cta">+ New Paper</button>
                 </div>
 
                 <div class="stats-bar" id="statsBar">
@@ -209,6 +223,91 @@
         </main>
     </div>
 
+    <!-- ───── NEW PAPER MODAL (Admin) — multi-step wizard ───── -->
+    <div class="modal-overlay" id="newPaperModal" onclick="newPaperModalBg(event)">
+        <div class="modal-box wizard-box">
+            <h2>New Paper</h2>
+            <div class="msub" id="wizardSub">Step 1 of 5 — What kind of paper is this?</div>
+
+            <!-- STEP 1: type -->
+            <div class="wiz-step" id="wizStep1" style="display:block;">
+                <div class="wiz-choice-grid">
+                    <button type="button" class="wiz-choice" onclick="npSelectType('academic')">
+                        <div class="wiz-choice-title">Academic Research Paper</div>
+                        <div class="wiz-choice-sub">Subject-based research paper (Economics, Biology, etc.)</div>
+                    </button>
+                    <button type="button" class="wiz-choice" onclick="npSelectType('competition')">
+                        <div class="wiz-choice-title">International Essay Competition</div>
+                        <div class="wiz-choice-sub">John Locke, Oxford Poetry Prize, and other competitions</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 2A: competition list -->
+            <div class="wiz-step" id="wizStep2Comp">
+                <div class="wiz-list" id="wizCompList"></div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="npBack()">Back</button>
+                    <button class="btn-solid" id="npCompNextBtn" onclick="npGoto(3)" disabled>Next →</button>
+                </div>
+            </div>
+
+            <!-- STEP 2B: subject list -->
+            <div class="wiz-step" id="wizStep2Subj">
+                <div class="wiz-list" id="wizSubjList"></div>
+                <div class="fld" id="npOtherSubjectFld" style="display:none;">
+                    <label>Subject name</label>
+                    <input type="text" id="npOtherSubject" placeholder="e.g. Political Science">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="npBack()">Back</button>
+                    <button class="btn-solid" id="npSubjNextBtn" onclick="npGoto(3)" disabled>Next →</button>
+                </div>
+            </div>
+
+            <!-- STEP 3: title -->
+            <div class="wiz-step" id="wizStep3">
+                <div class="fld">
+                    <label>Title</label>
+                    <input type="text" id="newPaperTitle" placeholder="e.g. The Future of Renewable Energy" autocomplete="off">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="npBack()">Back</button>
+                    <button class="btn-solid" onclick="npGoto(4)">Next →</button>
+                </div>
+            </div>
+
+            <!-- STEP 4: student -->
+            <div class="wiz-step" id="wizStep4">
+                <div class="fld">
+                    <label>Student</label>
+                    <select id="newPaperStudent">
+                        <option value="">Select a student…</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="npBack()">Back</button>
+                    <button class="btn-solid" onclick="npGoto(5)">Next →</button>
+                </div>
+            </div>
+
+            <!-- STEP 5: writer -->
+            <div class="wiz-step" id="wizStep5">
+                <div class="fld">
+                    <label>Writer</label>
+                    <select id="newPaperWriter">
+                        <option value="">Select a writer…</option>
+                    </select>
+                </div>
+                <div class="msub" style="margin-top:-.4rem;">You can also skip this and assign a writer later from "All Papers".</div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="npBack()">Back</button>
+                    <button class="btn-solid" id="newPaperCreateBtn" onclick="createPaperAsAdmin()">Create Paper</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ───── WRITER DETAIL MODAL ───── -->
     <div class="tm-overlay" id="writerModal" onclick="writerModalBg(event)">
         <div class="tm-box">
@@ -261,6 +360,16 @@
         function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
         function roleBadge(r) { var l = r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; return '<span class="role-badge role-' + (r || 'student') + '">' + l + '</span>'; }
         function roleName(r) { return r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; }
+        function paperTypeLabel(p) {
+            if (p.paper_type === 'competition') return 'Competition: ' + (p.competition_name || '—');
+            if (p.paper_type === 'academic') return 'Subject: ' + (p.subject || '—');
+            return '';
+        }
+        function genreValue(p) {
+            if (p.paper_type === 'competition') return p.competition_name || '—';
+            if (p.paper_type === 'academic') return p.subject || '—';
+            return '—';
+        }
 
         document.getElementById('userName').textContent = USER.full_name;
         document.getElementById('userId').textContent = '@' + USER.username;
@@ -270,6 +379,7 @@
             document.getElementById('brandSub').textContent = 'Co-Admin';
             // Co-admin restrictions
             var _sbar = document.getElementById('statsBar'); if (_sbar) _sbar.style.display = 'none';
+            var _newBtn = document.getElementById('newPaperCta'); if (_newBtn) _newBtn.style.display = 'none';
             document.querySelectorAll('.tab').forEach(function (t) {
                 if (t.getAttribute('data-panel') !== 'papers') t.style.display = 'none';
             });
@@ -298,7 +408,7 @@
             if (t) switchTab(t);
         }
 
-        var REGS = [], PAPERS = [], COLLABS = [], VERSIONS = [], WRITERS = [];
+        var REGS = [], PAPERS = [], COLLABS = [], VERSIONS = [], WRITERS = [], STUDENTS = [];
         var SEARCH_TERM = '';
         document.querySelector('.tb-search input').addEventListener('input', function (e) {
             SEARCH_TERM = e.target.value.trim().toLowerCase();
@@ -318,6 +428,7 @@
                 regMap = {};
                 REGS.forEach(function (r) { regMap[r.id] = r; });
                 WRITERS = REGS.filter(function (r) { return r.role === 'writer'; });
+                STUDENTS = REGS.filter(function (r) { return r.role === 'student'; });
 
                 var r2 = await sb.from('papers')
                     .select('*, registrations:student_id(full_name, username)')
@@ -329,7 +440,7 @@
                 COLLABS = (r3 && !r3.error) ? (r3.data || []) : [];
 
                 var r4 = await sb.from('paper_versions')
-                    .select('id, paper_id, editor_name, editor_role, change_note, word_count, created_at, papers:paper_id(title)')
+                    .select('id, paper_id, editor_name, editor_role, change_note, word_count, created_at, side, papers:paper_id(title)')
                     .order('created_at', { ascending: false }).limit(60);
                 VERSIONS = (r4 && !r4.error) ? (r4.data || []) : [];
 
@@ -338,6 +449,8 @@
                 renderWriters();
                 renderEdits();
                 renderPeople();
+                populateStudentOptions();
+                populateWriterOptions();
             } catch (e) {
                 document.getElementById('papersBox').innerHTML = '<div class="loading">Error: ' + e.message + '</div>';
             }
@@ -356,6 +469,183 @@
             var _appr = document.getElementById('stApproved'); if (_appr) _appr.textContent = approved;
             document.getElementById('stPending').textContent = pending;
             document.getElementById('stEdits').textContent = VERSIONS.length >= 60 ? '60+' : VERSIONS.length;
+        }
+
+        /* ═══════════════════ NEW PAPER WIZARD ═══════════════════ */
+        var COMPETITIONS = [
+            'John Locke Essay Competition',
+            'Oxford Poetry Prize',
+            'Harvard International Review Writing Contest',
+            'Harvard Crimson Global Essay Competition',
+            'Ayn Rand Essay Contests',
+            'Foyle Young Poets Award'
+        ];
+        var SUBJECTS = ['Economics', 'Biology', 'Psychology', 'Chemistry', 'Physics', 'Mathematics', 'English Literature', 'History', 'Computer Science', 'Other'];
+
+        var NP = { step: 1, type: null, competitionName: null, subject: null };
+
+        function populateStudentOptions() {
+            var sel = document.getElementById('newPaperStudent');
+            if (!sel) return;
+            var opts = '<option value="">Select a student…</option>';
+            STUDENTS.forEach(function (s) {
+                opts += '<option value="' + s.id + '">' + esc(s.full_name) + ' (@' + esc(s.username || '—') + ')</option>';
+            });
+            sel.innerHTML = opts;
+        }
+        function populateWriterOptions() {
+            var sel = document.getElementById('newPaperWriter');
+            if (!sel) return;
+            var opts = '<option value="">Select a writer…</option>';
+            WRITERS.forEach(function (w) {
+                opts += '<option value="' + w.id + '">' + esc(w.full_name) + ' (@' + esc(w.username || '—') + ')</option>';
+            });
+            sel.innerHTML = opts;
+        }
+
+        function renderCompList() {
+            var box = document.getElementById('wizCompList');
+            var html = '';
+            COMPETITIONS.forEach(function (name) {
+                html += '<button type="button" class="wiz-list-item" onclick="npSelectCompetition(this,\'' + name.replace(/'/g, "\\'") + '\')">' + esc(name) + '</button>';
+            });
+            box.innerHTML = html;
+        }
+        function npSelectCompetition(el, name) {
+            NP.competitionName = name;
+            document.querySelectorAll('#wizCompList .wiz-list-item').forEach(function (b) { b.classList.remove('selected'); });
+            el.classList.add('selected');
+            document.getElementById('npCompNextBtn').disabled = false;
+        }
+
+        function renderSubjList() {
+            var box = document.getElementById('wizSubjList');
+            var html = '';
+            SUBJECTS.forEach(function (name) {
+                html += '<button type="button" class="wiz-list-item" onclick="npSelectSubject(this,\'' + name.replace(/'/g, "\\'") + '\')">' + esc(name) + '</button>';
+            });
+            box.innerHTML = html;
+        }
+        function npSelectSubject(el, name) {
+            NP.subject = name;
+            document.querySelectorAll('#wizSubjList .wiz-list-item').forEach(function (b) { b.classList.remove('selected'); });
+            el.classList.add('selected');
+            document.getElementById('npOtherSubjectFld').style.display = (name === 'Other') ? 'block' : 'none';
+            document.getElementById('npSubjNextBtn').disabled = false;
+        }
+
+        function openNewPaperModal() {
+            if (!IS_FULL_ADMIN) return;
+            NP = { step: 1, type: null, competitionName: null, subject: null };
+            populateStudentOptions();
+            populateWriterOptions();
+            document.getElementById('newPaperTitle').value = '';
+            document.getElementById('newPaperStudent').value = '';
+            document.getElementById('newPaperWriter').value = '';
+            document.getElementById('npOtherSubject').value = '';
+            document.getElementById('npOtherSubjectFld').style.display = 'none';
+            document.getElementById('npCompNextBtn').disabled = true;
+            document.getElementById('npSubjNextBtn').disabled = true;
+            renderCompList();
+            renderSubjList();
+            npShowStep(1);
+            document.getElementById('newPaperModal').classList.add('show');
+        }
+        function closeNewPaperModal() { document.getElementById('newPaperModal').classList.remove('show'); }
+        function newPaperModalBg(e) { if (e.target && e.target.id === 'newPaperModal') closeNewPaperModal(); }
+
+        function npShowStep(step) {
+            NP.step = step;
+            ['wizStep1', 'wizStep2Comp', 'wizStep2Subj', 'wizStep3', 'wizStep4', 'wizStep5'].forEach(function (id) {
+                document.getElementById(id).style.display = 'none';
+            });
+            var subs = {
+                1: 'Step 1 of 5 — What kind of paper is this?',
+                2: 'Step 2 of 5 — Choose one',
+                3: 'Step 3 of 5 — Give it a title',
+                4: 'Step 4 of 5 — Who is the student?',
+                5: 'Step 5 of 5 — Who is the writer?'
+            };
+            if (step === 1) { document.getElementById('wizStep1').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[1]; }
+            else if (step === 2) {
+                if (NP.type === 'competition') document.getElementById('wizStep2Comp').style.display = 'block';
+                else document.getElementById('wizStep2Subj').style.display = 'block';
+                document.getElementById('wizardSub').textContent = subs[2];
+            }
+            else if (step === 3) { document.getElementById('wizStep3').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[3]; setTimeout(function () { document.getElementById('newPaperTitle').focus(); }, 50); }
+            else if (step === 4) { document.getElementById('wizStep4').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[4]; }
+            else if (step === 5) { document.getElementById('wizStep5').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[5]; }
+        }
+
+        function npSelectType(type) {
+            NP.type = type;
+            npShowStep(2);
+        }
+
+        function npBack() {
+            if (NP.step === 2) npShowStep(1);
+            else if (NP.step === 3) npShowStep(2);
+            else if (NP.step === 4) npShowStep(3);
+            else if (NP.step === 5) npShowStep(4);
+        }
+
+        function npGoto(step) {
+            if (step === 5 && NP.step === 4) {
+                var studentId = document.getElementById('newPaperStudent').value;
+                if (!studentId) { toast('Please select a student', 'error'); return; }
+            }
+            npShowStep(step);
+        }
+
+        async function createPaperAsAdmin() {
+            if (!IS_FULL_ADMIN) return;
+            var studentId = document.getElementById('newPaperStudent').value;
+            var writerId = document.getElementById('newPaperWriter').value;
+            var title = document.getElementById('newPaperTitle').value.trim() || 'Untitled Paper';
+            if (!studentId) { toast('Please select a student', 'error'); npShowStep(4); return; }
+
+            var subject = NP.subject === 'Other' ? (document.getElementById('npOtherSubject').value.trim() || 'Other') : NP.subject;
+
+            var payload = {
+                student_id: studentId,
+                title: title,
+                abstract: '',
+                track: NP.type === 'competition' ? 'essay' : 'research',
+                paper_type: NP.type,
+                competition_name: NP.type === 'competition' ? NP.competitionName : null,
+                subject: NP.type === 'academic' ? subject : null,
+                status: 'draft',
+                content: '',
+                writer_content: '',
+                word_count: 0,
+                writer_word_count: 0
+            };
+
+            var btn = document.getElementById('newPaperCreateBtn');
+            btn.disabled = true; btn.textContent = 'Creating…';
+            try {
+                var res = await sb.from('papers').insert(payload).select('*, registrations:student_id(full_name, username)').single();
+                if (res.error) throw res.error;
+                var newPaper = res.data;
+
+                if (writerId) {
+                    try {
+                        var cres = await sb.from('paper_collaborators').upsert({ paper_id: newPaper.id, judge_id: writerId, can_edit: true }, { onConflict: 'paper_id,judge_id' });
+                        if (!cres.error) COLLABS.push({ paper_id: newPaper.id, judge_id: writerId });
+                    } catch (ce) { /* writer can still be assigned later from All Papers */ }
+                }
+
+                PAPERS.unshift(newPaper);
+                closeNewPaperModal();
+                toast('Paper created ✓', 'success');
+                renderStats();
+                renderPapers();
+                renderWriters();
+            } catch (e) {
+                toast('Error: ' + e.message, 'error');
+            } finally {
+                btn.disabled = false; btn.textContent = 'Create Paper';
+            }
         }
 
         function writersForPaper(pid) {
@@ -427,7 +717,7 @@
             }
             var h = IS_FULL_ADMIN ? '<p class="note">Every paper must be assigned to at least one writer before it becomes visible on the respective writer and student dashboards.</p>' : '';
             h += '<div class="card-wrap"><table><thead><tr>'
-                + '<th>Title &amp; Author</th><th>Track</th>'
+                + '<th>Title</th><th>Genre</th><th>Track</th><th>Student</th>'
                 + (IS_CO_ADMIN ? '' : '<th>Assigned Writer(s)</th>')
                 + '<th>Status</th><th>Approved</th><th>AI Report</th><th>Last Edit</th><th></th>'
                 + '</tr></thead><tbody>';
@@ -448,8 +738,10 @@
                 }
 
                 h += '<tr class="clickable" onclick="openPaper(\'' + p.id + '\')">'
-                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div><div class="psub">by ' + esc(p.registrations ? p.registrations.full_name : '—') + '</div></td>'
+                    + '<td><div class="ptitle">' + esc(p.title || 'Untitled') + '</div></td>'
+                    + '<td><span class="psub">' + esc(genreValue(p)) + '</span></td>'
                     + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
+                    + '<td><span class="psub">' + esc(p.registrations ? p.registrations.full_name : '—') + '</span></td>'
                     + (IS_CO_ADMIN ? '' : '<td>' + tCell + '</td>')
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
                     + '<td>' + approvalCell(p) + '</td>'
@@ -754,7 +1046,7 @@
         }
         function closeWriterModal() { document.getElementById('writerModal').classList.remove('show'); }
         function writerModalBg(e) { if (e.target && e.target.id === 'writerModal') closeWriterModal(); }
-        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeWriterModal(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeWriterModal(); closeNewPaperModal(); } });
 
         function renderEdits() {
             var box = document.getElementById('editsBox');
@@ -773,8 +1065,9 @@
             var h = '';
             rows.forEach(function (v) {
                 var ptitle = v.papers ? v.papers.title : 'a paper';
+                var sideTag = v.side === 'writer' ? '<span class="psub">(writer copy)</span> ' : v.side === 'student' ? '<span class="psub">(student copy)</span> ' : '';
                 h += '<div class="feed-item"><div class="feed-dot" style="background:' + dotColor(v.editor_role) + '"></div>'
-                    + '<div><div class="feed-text">' + roleBadge(v.editor_role) + ' <strong>' + esc(v.editor_name || 'Someone') + '</strong> edited <em>' + esc(ptitle || 'a paper') + '</em>'
+                    + '<div><div class="feed-text">' + roleBadge(v.editor_role) + ' <strong>' + esc(v.editor_name || 'Someone') + '</strong> edited ' + sideTag + '<em>' + esc(ptitle || 'a paper') + '</em>'
                     + (v.change_note ? ' — ' + esc(v.change_note) : '') + ' (' + (v.word_count || 0) + ' words)</div>'
                     + '<div class="feed-time">' + fmtWhen(v.created_at) + '</div></div></div>';
             });
@@ -827,8 +1120,9 @@
                 if (res.error) throw res.error;
                 var r = regMap[id]; if (r) r.role = role;
                 WRITERS = REGS.filter(function (x) { return x.role === 'writer'; });
+                STUDENTS = REGS.filter(function (x) { return x.role === 'student'; });
                 toast('Role updated → ' + roleName(role), 'success');
-                renderStats(); renderWriters(); renderPapers();
+                renderStats(); renderWriters(); renderPapers(); populateStudentOptions(); populateWriterOptions();
             } catch (e) { toast('Error: ' + e.message, 'error'); }
         }
 

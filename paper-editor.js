@@ -99,6 +99,90 @@ function goBackToDashboard() {
     window.location.href = BACK_URL;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   ⭐ STUDENT / WRITER SIDE
+   Ye paper ab do alag "copies" rakhta hai — ek student ki, ek
+   writer ki (dono ka apna content, word_count, last-edit info).
+   - student login → hamesha SIDE = 'student'
+   - writer login  → hamesha SIDE = 'writer'
+   - admin/co_admin → dono dekh sakte hain, left sidebar ke tabs se
+     switch karke (default: student)
+═══════════════════════════════════════════════════════════════ */
+var SIDE = 'student';
+if (USER && USER.role === 'writer') SIDE = 'writer';
+var CAN_SWITCH_SIDE = USER && (USER.role === 'admin' || USER.role === 'co_admin');
+
+function sideField(side, key) {
+    var map = {
+        student: {
+            content: 'content',
+            word_count: 'word_count',
+            last_editor_name: 'last_editor_name',
+            last_editor_role: 'last_editor_role',
+            last_edited_at: 'last_edited_at'
+        },
+        writer: {
+            content: 'writer_content',
+            word_count: 'writer_word_count',
+            last_editor_name: 'writer_last_editor_name',
+            last_editor_role: 'writer_last_editor_role',
+            last_edited_at: 'writer_last_edited_at'
+        }
+    };
+    return map[side][key];
+}
+
+function contentForSide(side) {
+    if (!PAPER) return '';
+    return PAPER[sideField(side, 'content')] || '';
+}
+
+if (CAN_SWITCH_SIDE) {
+    var sideTabsEl = document.getElementById('editorSideTabs');
+    if (sideTabsEl) {
+        sideTabsEl.classList.add('show');
+        document.body.classList.add('side-tabs-active');
+    }
+}
+
+function updateSideTabsUI() {
+    var tb1 = document.getElementById('tabStudentBtn');
+    var tb2 = document.getElementById('tabWriterBtn');
+    if (tb1) tb1.classList.toggle('active', SIDE === 'student');
+    if (tb2) tb2.classList.toggle('active', SIDE === 'writer');
+    if (CAN_SWITCH_SIDE) {
+        var badgeEl = document.getElementById('editBadge');
+        if (badgeEl) {
+            var rl = USER.role === 'admin' ? 'Admin' : 'Co-Admin';
+            badgeEl.textContent = rl + ' Edit Mode · ' + (SIDE === 'student' ? 'Student view' : 'Writer view');
+        }
+    }
+}
+
+async function switchSide(newSide) {
+    if (!CAN_SWITCH_SIDE || newSide === SIDE || !PAPER) return;
+    try {
+        if (quill && quill.root.innerHTML !== _lastSavedContent) {
+            await doSave(true, 'Auto-save before switching view');
+        }
+    } catch (e) { /* non-critical */ }
+
+    SIDE = newSide;
+    if (quill) {
+        var c = contentForSide(SIDE);
+        quill.root.innerHTML = c;
+        _lastSavedContent = c;
+    }
+    _lastVersionContent = contentForSide(SIDE);
+    _lastVersionTime = 0;
+    updateCounts();
+    var lastEditedAt = PAPER[sideField(SIDE, 'last_edited_at')];
+    document.getElementById('lastSavedTime').textContent = 'Last saved: ' + fmtWhen(lastEditedAt || PAPER.updated_at);
+    updateSideTabsUI();
+    loadVersions();
+    toast((SIDE === 'student' ? 'Student' : 'Writer') + ' editor loaded', 'success');
+}
+
 
 var PAPER = null;
 var _isLoading = true;
@@ -310,8 +394,10 @@ function setStatus(type, text) {
 
 /* ═══════════════════════════════════════════════════════════════
    LOAD PAPER
-   - student: sirf apna paper
-   - writer/admin/co_admin: koi bhi paper edit kar sakta hai
+   - student: sirf apna paper (SIDE = 'student')
+   - writer: koi bhi assigned paper (SIDE = 'writer')
+   - admin/co_admin: koi bhi paper, default SIDE = 'student', switch
+     kar sakte hain left sidebar ke tabs se
 ═══════════════════════════════════════════════════════════════ */
 async function loadPaper() {
     if (!sb) {
@@ -338,17 +424,23 @@ async function loadPaper() {
         document.getElementById('docTrack').value = PAPER.track || 'research';
         document.getElementById('docStatus').value = PAPER.status || 'draft';
 
-        if (PAPER.content && quill) {
-            quill.root.innerHTML = PAPER.content;
-            _lastSavedContent = PAPER.content;
+        var initialContent = contentForSide(SIDE);
+        if (quill) {
+            quill.root.innerHTML = initialContent;
+            _lastSavedContent = initialContent;
         }
-        _lastVersionContent = PAPER.content || '';
+        _lastVersionContent = initialContent;
         _lastVersionTime = 0; // pehla changed-save hamesha ek checkpoint banayega
         updateCounts();
 
-        if (PAPER.updated_at) {
+        var sideLastEdited = PAPER[sideField(SIDE, 'last_edited_at')];
+        if (sideLastEdited) {
+            document.getElementById('lastSavedTime').textContent = 'Last saved: ' + fmtWhen(sideLastEdited);
+        } else if (PAPER.updated_at) {
             document.getElementById('lastSavedTime').textContent = 'Last saved: ' + fmtWhen(PAPER.updated_at);
         }
+
+        updateSideTabsUI();
 
         _isLoading = false;
         setStatus('saved', 'All changes saved');
@@ -361,6 +453,8 @@ async function loadPaper() {
 
 /* ═══════════════════════════════════════════════════════════════
    SAVE  (papers update + version snapshot + collaborator link)
+   Content/word-count/last-editor SIDE ke hisaab se sahi column me
+   jaate hain — student aur writer ka content hamesha alag rehta hai.
 ═══════════════════════════════════════════════════════════════ */
 async function doSave(isManual, note) {
     if (_isLoading || !PAPER || !sb || !quill) return;
@@ -376,28 +470,30 @@ async function doSave(isManual, note) {
     setStatus('saving', 'Saving...');
 
     try {
-        var result = await sb.from('papers').update({
+        var patch = {
             title: title,
             abstract: abstract,
             track: track,
             status: status,
-            content: content,
-            word_count: words,
-            updated_at: nowIso,
-            last_editor_name: USER.full_name,
-            last_editor_role: USER.role,
-            last_edited_at: nowIso
-        }).eq('id', PAPER_ID);
+            updated_at: nowIso
+        };
+        patch[sideField(SIDE, 'content')] = content;
+        patch[sideField(SIDE, 'word_count')] = words;
+        patch[sideField(SIDE, 'last_editor_name')] = USER.full_name;
+        patch[sideField(SIDE, 'last_editor_role')] = USER.role;
+        patch[sideField(SIDE, 'last_edited_at')] = nowIso;
+
+        var result = await sb.from('papers').update(patch).eq('id', PAPER_ID);
         if (result.error) throw result.error;
+
+        Object.keys(patch).forEach(function (k) { PAPER[k] = patch[k]; });
 
         _lastSavedContent = content;
         setStatus('saved', 'All changes saved');
         document.getElementById('lastSavedTime').textContent = 'Last saved: ' + fmtWhen(nowIso);
 
         /* Writer ne edit kiya → use is paper ka collaborator bana do
-           (taaki admin dashboard "kis writer ke kitne students" dikha sake).
-           Note: paper_collaborators ka column DB me 'judge_id' hi hai — wo
-           bas ek column naam hai (writer ki id store karta hai), isliye chhoda hai. */
+           (taaki admin dashboard "kis writer ke kitne students" dikha sake). */
         if (IS_WRITER) {
             try {
                 await sb.from('paper_collaborators')
@@ -412,13 +508,16 @@ async function doSave(isManual, note) {
                 /* non-critical */ }
         }
 
-        /* VERSION SNAPSHOT — content badla ho, aur (manual ho ya 60s+ ho gaye ho) */
+        /* VERSION SNAPSHOT — content badla ho, aur (manual ho ya 60s+ ho gaye ho).
+           Har snapshot par SIDE tag lagta hai, taaki student aur writer ki history
+           kabhi aapas me mix na ho. */
         var changed = content !== _lastVersionContent;
         var throttleOk = (Date.now() - _lastVersionTime) >= 60000;
         if (changed && (isManual || throttleOk)) {
             try {
                 await sb.from('paper_versions').insert({
                     paper_id: PAPER_ID,
+                    side: SIDE,
                     title: title,
                     abstract: abstract,
                     content: content,
@@ -484,7 +583,7 @@ window.addEventListener('beforeunload', function () {
 });
 
 /* ═══════════════════════════════════════════════════════════════
-   ⭐ VERSION HISTORY (Google-Docs jaisa)
+   ⭐ VERSION HISTORY (Google-Docs jaisa) — SIDE ke hisaab se filter
 ═══════════════════════════════════════════════════════════════ */
 function roleBadge(role) {
     var cls = 'role-' + (role || 'student');
@@ -500,6 +599,7 @@ async function loadVersions() {
         var res = await sb.from('paper_versions')
             .select('*')
             .eq('paper_id', PAPER_ID)
+            .eq('side', SIDE)
             .order('created_at', {
                 ascending: false
             })
@@ -645,12 +745,6 @@ function renderTok(t, v) {
 }
 
 /* sirf ek BADLE HUE block (chhota) par word-by-word diff */
-/* Word-level diff jo sirf BADLE HUE words highlight karta hai.
-   Trick: pehle common PREFIX (jo shuru me same hai) aur common SUFFIX
-   (jo aakhir me same hai) ko hata do — wo plain dikhega. Sirf beech ka
-   chhota changed hissa LCS se diff hota hai. Isliye 3600-word paper me
-   bhi agar 3-4 word badle to sirf wahi red/green honge, baaki sab normal.
-   Aur ye fast hai kyunki LCS sirf chhote middle par chalta hai. */
 function diffWordsInline(oldText, newText) {
     if (oldText === newText) return escapeHtml(oldText);
     if (!oldText) return '<ins style="' + DIFF_INS_STYLE + '">' + escapeHtml(newText) + '</ins>';
@@ -678,7 +772,6 @@ function diffWordsInline(oldText, newText) {
     var midA = a.slice(s, ea),
         midB = b.slice(s, eb); // sirf changed middle
     if (midA.length * midB.length > 6000000) {
-        // bahut bada scattered change — middle ko seedha del+ins (rare)
         if (midA.length) out += '<del style="' + DIFF_DEL_STYLE + '">' + escapeHtml(midA.join('')) + '</del>';
         if (midB.length) out += '<ins style="' + DIFF_INS_STYLE + '">' + escapeHtml(midB.join('')) + '</ins>';
     } else {
@@ -705,8 +798,6 @@ function previewVersion(id) {
         roleBadge(v.editor_role) + ' ' + escapeHtml(v.editor_name || 'Unknown') + ' · ' + fmtWhen(v.created_at);
     document.getElementById('previewTitle').textContent = v.title || 'Untitled';
 
-    /* is version se theek pehle wala (purana) version dhoondo.
-       _versions list newest→oldest hai, isliye agla index = purana version. */
     var idx = -1;
     for (var i = 0; i < _versions.length; i++) {
         if (_versions[i].id === v.id) {
@@ -726,7 +817,6 @@ function previewVersion(id) {
         body.innerHTML = legend +
             '<div style="white-space:pre-wrap;word-break:break-word;">' + buildDiffHtml(older.content || '', v.content || '') + '</div>';
     } else {
-        /* sabse purana version — compare karne ko kuch nahi (sab kuch naya hai) */
         legend += '<span style="text-transform:none;letter-spacing:0;">first version</span></div>';
         body.innerHTML = legend +
             '<div style="white-space:pre-wrap;word-break:break-word;">' +
@@ -769,7 +859,6 @@ async function restoreVersion(id) {
     toast('Version restored ✓', 'success');
 }
 
-/* ─── DOWNLOAD DROPDOWN ─── */
 /* ─── DOWNLOAD DROPDOWN ─── */
 function toggleDownload(e) {
     e.stopPropagation();
@@ -1330,7 +1419,6 @@ function jumpToComment(id) {
         });
     }
 
-    /* 2 second ka yellow flash — sirf selection se kabhi kabhi kam noticeable lagta hai */
     try {
         quill.formatText(c.anchor_index, c.anchor_length, {
             background: '#fff3a3'
