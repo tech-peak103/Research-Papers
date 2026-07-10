@@ -151,6 +151,8 @@
                     <div class="tab" onclick="setView('completed', event)">Completed</div>
                 </div>
 
+                <div id="journeySection"></div>
+
                 <div id="papersList">
                     <div class="loading">Loading papers…</div>
                 </div>
@@ -193,6 +195,82 @@
             if (p.paper_type === 'competition') return 'Competition: ' + (p.competition_name || '—');
             if (p.paper_type === 'academic') return 'Subject: ' + (p.subject || '—');
             return '';
+        }
+
+        /* ─── Journey helpers (student-only view of the 6-week schedule set by admin) ─── */
+        function fmtTimeLabel(t) {
+            if (!t) return '—';
+            var parts = t.split(':'); var h = parseInt(parts[0], 10); var m = parts[1];
+            var ap = h >= 12 ? 'PM' : 'AM'; var h12 = h % 12; if (h12 === 0) h12 = 12;
+            return h12 + ':' + m + ' ' + ap;
+        }
+        function weekDateStr(startDateStr, weekNum) {
+            if (!startDateStr) return '—';
+            try {
+                var d = new Date(startDateStr + 'T00:00:00');
+                d.setDate(d.getDate() + (weekNum - 1) * 7);
+                return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+            } catch (e) { return '—'; }
+        }
+        function defaultJourneyWeeksLocal() {
+            var labels = ['Week 1: Topic & Outline', 'Week 2: Research & Sources', 'Week 3: First Draft', 'Week 4: Draft Review', 'Week 5: Revisions', 'Week 6: Final Week'];
+            return labels.map(function (l, i) { return { week: i + 1, label: l, completed: false }; });
+        }
+        function nextSessionInfo(p, weeks) {
+            var idx = -1;
+            for (var i = 0; i < weeks.length; i++) { if (!weeks[i] || !weeks[i].completed) { idx = i; break; } }
+            if (idx === -1) return { done: true };
+            return { week: idx + 1, date: weekDateStr(p.meeting_start_date, idx + 1), time: fmtTimeLabel(p.meeting_time), label: (weeks[idx] && weeks[idx].label) || ('Week ' + (idx + 1)) };
+        }
+        // Big standalone journey card (shown above the papers table, not inside it).
+        function journeyCardHTML(p) {
+            if (!p.meeting_start_date) return '';
+            var weeks = (Array.isArray(p.journey_weeks) && p.journey_weeks.length) ? p.journey_weeks : defaultJourneyWeeksLocal();
+            var doneCount = weeks.filter(function (w) { return w && w.completed; }).length;
+            var meetingDay = '';
+            try { meetingDay = new Date(p.meeting_start_date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long' }); } catch (e) { meetingDay = ''; }
+
+            var stepper = '<div style="display:flex;align-items:flex-start;margin-top:18px;">';
+            for (var i = 0; i < 6; i++) {
+                var w = weeks[i] || {};
+                var on = !!w.completed;
+                var rawLabel = w.label || ('Week ' + (i + 1));
+                var subLabel = rawLabel.indexOf(':') !== -1 ? rawLabel.split(':').slice(1).join(':').trim() : '';
+                stepper += '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">'
+                    + '<div style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.78rem;font-weight:700;background:' + (on ? '#22C55E' : '#fff') + ';border:2px solid ' + (on ? '#16a34a' : '#cbd5e1') + ';color:' + (on ? '#fff' : '#64748b') + ';">' + (on ? '✓' : (i + 1)) + '</div>'
+                    + '<div style="font-size:.75rem;font-weight:700;color:' + (on ? '#16a34a' : '#334155') + ';margin-top:6px;">Week ' + (i + 1) + '</div>'
+                    + (subLabel ? '<div style="font-size:.68rem;color:#64748b;text-align:center;padding:0 4px;">' + esc(subLabel) + '</div>' : '')
+                    + '<div style="font-size:.66rem;color:#94a3b8;margin-top:2px;">' + weekDateStr(p.meeting_start_date, i + 1) + '</div>'
+                    + '</div>';
+                if (i < 5) {
+                    stepper += '<div style="flex-shrink:0;width:100%;max-width:60px;height:3px;background:' + (on ? '#22C55E' : '#e2e8f0') + ';margin-top:17px;"></div>';
+                }
+            }
+            stepper += '</div>';
+
+            var next = nextSessionInfo(p, weeks);
+            var nextHtml = next.done
+                ? '<div style="margin-top:14px;font-weight:600;color:#16a34a;">🎉 All 6 weeks complete!</div>'
+                : '<div style="margin-top:14px;font-size:.85rem;"><strong>Next session:</strong> ' + esc(next.label) + ' — ' + next.date + ', ' + next.time + '</div>';
+
+            return '<div class="card-wrap" style="padding:20px 24px;margin-bottom:18px;">'
+                + '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;">'
+                + '<h3 style="margin:0;font-size:1.05rem;color:#1c3a2b;">My Journey — <span style="font-weight:500;">' + esc(p.title || 'Untitled') + '</span></h3>'
+                + '<span class="psub">' + doneCount + ' of 6 weeks complete</span>'
+                + '</div>'
+                + '<div class="psub" style="margin-top:2px;">Meeting every ' + esc(meetingDay) + ' at ' + fmtTimeLabel(p.meeting_time) + ' · started ' + fmtDate(p.meeting_start_date) + '</div>'
+                + stepper
+                + nextHtml
+                + '</div>';
+        }
+        function renderJourneySection() {
+            var el = document.getElementById('journeySection');
+            if (!el) return;
+            var withMeeting = MY_PAPERS.filter(function (p) { return p.meeting_start_date; });
+            if (!withMeeting.length) { el.innerHTML = ''; return; }
+            var html = '';
+            withMeeting.forEach(function (p) { html += journeyCardHTML(p); });
+            el.innerHTML = html;
         }
 
         document.getElementById('userName').textContent = USER.full_name;
@@ -245,6 +323,7 @@
         }
 
         function render() {
+            renderJourneySection();
             var list = document.getElementById('papersList');
             var data = MY_PAPERS;
             if (VIEW === 'draft') data = MY_PAPERS.filter(function (p) { return (p.status || 'draft') === 'draft'; });

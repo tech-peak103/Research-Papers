@@ -291,8 +291,27 @@
                 </div>
             </div>
 
-            <!-- STEP 5: writer -->
-            <div class="wiz-step" id="wizStep5">
+            <!-- STEP 5: weekly meeting slot (drives student journey) -->
+            <div class="wiz-step" id="wizStepMeeting">
+                <div class="fld">
+                    <label>First meeting date (Week 1)</label>
+                    <input type="date" id="npMeetingDate" oninput="checkMeetingNextEnabled()">
+                </div>
+                <div class="fld">
+                    <label>Time slot (15 min, 10 AM – 8 PM)</label>
+                    <select id="npMeetingTime" onchange="checkMeetingNextEnabled()">
+                        <option value="">Select a slot…</option>
+                    </select>
+                </div>
+                <div class="msub" style="margin-top:-.4rem;">Same day &amp; time will repeat every week for 6 weeks. This becomes the student's journey — visible only on the student dashboard.</div>
+                <div class="modal-actions">
+                    <button class="btn-ghost" onclick="npBack()">Back</button>
+                    <button class="btn-solid" id="npMeetingNextBtn" onclick="npGoto(6)" disabled>Next →</button>
+                </div>
+            </div>
+
+            <!-- STEP 6: writer -->
+            <div class="wiz-step" id="wizStep6">
                 <div class="fld">
                     <label>Writer</label>
                     <select id="newPaperWriter">
@@ -357,6 +376,7 @@
 
         function initials(n) { return (n || 'A').split(' ').map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase(); }
         function fmtWhen(d) { if (!d) return '—'; try { return new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return d; } }
+        function fmtWhen2(d) { if (!d) return '—'; try { return new Date(d + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return d; } }
         function esc(s) { if (!s) return ''; return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
         function roleBadge(r) { var l = r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; return '<span class="role-badge role-' + (r || 'student') + '">' + l + '</span>'; }
         function roleName(r) { return r === 'admin' ? 'Admin' : r === 'co_admin' ? 'Co-Admin' : r === 'writer' ? 'Writer' : 'Student'; }
@@ -369,6 +389,52 @@
             if (p.paper_type === 'competition') return p.competition_name || '—';
             if (p.paper_type === 'academic') return p.subject || '—';
             return '—';
+        }
+
+        /* ─── Weekly meeting slot + student journey helpers ─── */
+        function timeSlotOptions() {
+            var opts = [];
+            for (var h = 10; h <= 19; h++) {
+                for (var m = 0; m < 60; m += 15) {
+                    if (h === 19 && m > 45) continue;
+                    var hh = (h < 10 ? '0' : '') + h;
+                    var mm = (m < 10 ? '0' : '') + m;
+                    opts.push(hh + ':' + mm);
+                }
+            }
+            return opts;
+        }
+        function fmtTimeLabel(t) {
+            if (!t) return '—';
+            var parts = t.split(':'); var h = parseInt(parts[0], 10); var m = parts[1];
+            var ap = h >= 12 ? 'PM' : 'AM'; var h12 = h % 12; if (h12 === 0) h12 = 12;
+            return h12 + ':' + m + ' ' + ap;
+        }
+        function slotRangeLabel(t) {
+            if (!t) return '—';
+            var parts = t.split(':'); var h = parseInt(parts[0], 10); var m = parseInt(parts[1], 10);
+            var endM = m + 15; var endH = h; if (endM >= 60) { endM -= 60; endH += 1; }
+            var endT = (endH < 10 ? '0' : '') + endH + ':' + (endM < 10 ? '0' : '') + endM;
+            return fmtTimeLabel(t) + ' – ' + fmtTimeLabel(endT);
+        }
+        function defaultJourneyWeeks() {
+            var labels = ['Week 1: Topic & Outline', 'Week 2: Research & Sources', 'Week 3: First Draft', 'Week 4: Draft Review', 'Week 5: Revisions', 'Week 6: Final Week'];
+            return labels.map(function (l, i) { return { week: i + 1, label: l, completed: false, completed_at: null }; });
+        }
+        function weekDateStr(startDateStr, weekNum) {
+            if (!startDateStr) return '—';
+            try {
+                var d = new Date(startDateStr + 'T00:00:00');
+                d.setDate(d.getDate() + (weekNum - 1) * 7);
+                return d.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+            } catch (e) { return '—'; }
+        }
+        function meetingSummary(p) {
+            if (!p.meeting_start_date) return '<span class="psub">— not set —</span>';
+            var day = '';
+            try { day = new Date(p.meeting_start_date + 'T00:00:00').toLocaleDateString('en-IN', { weekday: 'long' }); } catch (e) { day = ''; }
+            return '<div class="ptitle" style="font-size:.82rem;">' + esc(day) + ' · ' + fmtTimeLabel(p.meeting_time) + '</div>'
+                + '<div class="psub">from ' + fmtWhen2(p.meeting_start_date) + ' · weekly, 6 weeks</div>';
         }
 
         document.getElementById('userName').textContent = USER.full_name;
@@ -502,6 +568,18 @@
             });
             sel.innerHTML = opts;
         }
+        function populateMeetingTimeOptions() {
+            var sel = document.getElementById('npMeetingTime');
+            if (!sel) return;
+            var opts = '<option value="">Select a slot…</option>';
+            timeSlotOptions().forEach(function (t) { opts += '<option value="' + t + '">' + slotRangeLabel(t) + '</option>'; });
+            sel.innerHTML = opts;
+        }
+        function checkMeetingNextEnabled() {
+            var d = document.getElementById('npMeetingDate').value;
+            var t = document.getElementById('npMeetingTime').value;
+            document.getElementById('npMeetingNextBtn').disabled = !(d && t);
+        }
 
         function renderCompList() {
             var box = document.getElementById('wizCompList');
@@ -546,6 +624,9 @@
             document.getElementById('npOtherSubjectFld').style.display = 'none';
             document.getElementById('npCompNextBtn').disabled = true;
             document.getElementById('npSubjNextBtn').disabled = true;
+            document.getElementById('npMeetingDate').value = '';
+            populateMeetingTimeOptions();
+            checkMeetingNextEnabled();
             renderCompList();
             renderSubjList();
             npShowStep(1);
@@ -556,15 +637,16 @@
 
         function npShowStep(step) {
             NP.step = step;
-            ['wizStep1', 'wizStep2Comp', 'wizStep2Subj', 'wizStep3', 'wizStep4', 'wizStep5'].forEach(function (id) {
+            ['wizStep1', 'wizStep2Comp', 'wizStep2Subj', 'wizStep3', 'wizStep4', 'wizStepMeeting', 'wizStep6'].forEach(function (id) {
                 document.getElementById(id).style.display = 'none';
             });
             var subs = {
-                1: 'Step 1 of 5 — What kind of paper is this?',
-                2: 'Step 2 of 5 — Choose one',
-                3: 'Step 3 of 5 — Give it a title',
-                4: 'Step 4 of 5 — Who is the student?',
-                5: 'Step 5 of 5 — Who is the writer?'
+                1: 'Step 1 of 6 — What kind of paper is this?',
+                2: 'Step 2 of 6 — Choose one',
+                3: 'Step 3 of 6 — Give it a title',
+                4: 'Step 4 of 6 — Who is the student?',
+                5: 'Step 5 of 6 — Choose the weekly meeting slot',
+                6: 'Step 6 of 6 — Who is the writer?'
             };
             if (step === 1) { document.getElementById('wizStep1').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[1]; }
             else if (step === 2) {
@@ -574,7 +656,8 @@
             }
             else if (step === 3) { document.getElementById('wizStep3').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[3]; setTimeout(function () { document.getElementById('newPaperTitle').focus(); }, 50); }
             else if (step === 4) { document.getElementById('wizStep4').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[4]; }
-            else if (step === 5) { document.getElementById('wizStep5').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[5]; }
+            else if (step === 5) { document.getElementById('wizStepMeeting').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[5]; }
+            else if (step === 6) { document.getElementById('wizStep6').style.display = 'block'; document.getElementById('wizardSub').textContent = subs[6]; }
         }
 
         function npSelectType(type) {
@@ -587,12 +670,18 @@
             else if (NP.step === 3) npShowStep(2);
             else if (NP.step === 4) npShowStep(3);
             else if (NP.step === 5) npShowStep(4);
+            else if (NP.step === 6) npShowStep(5);
         }
 
         function npGoto(step) {
             if (step === 5 && NP.step === 4) {
                 var studentId = document.getElementById('newPaperStudent').value;
                 if (!studentId) { toast('Please select a student', 'error'); return; }
+            }
+            if (step === 6 && NP.step === 5) {
+                var d = document.getElementById('npMeetingDate').value;
+                var t = document.getElementById('npMeetingTime').value;
+                if (!d || !t) { toast('Please choose the meeting date & time slot', 'error'); return; }
             }
             npShowStep(step);
         }
@@ -603,6 +692,10 @@
             var writerId = document.getElementById('newPaperWriter').value;
             var title = document.getElementById('newPaperTitle').value.trim() || 'Untitled Paper';
             if (!studentId) { toast('Please select a student', 'error'); npShowStep(4); return; }
+
+            var meetingDate = document.getElementById('npMeetingDate').value;
+            var meetingTime = document.getElementById('npMeetingTime').value;
+            if (!meetingDate || !meetingTime) { toast('Please choose the meeting date & time slot', 'error'); npShowStep(5); return; }
 
             var subject = NP.subject === 'Other' ? (document.getElementById('npOtherSubject').value.trim() || 'Other') : NP.subject;
 
@@ -618,7 +711,10 @@
                 content: '',
                 writer_content: '',
                 word_count: 0,
-                writer_word_count: 0
+                writer_word_count: 0,
+                meeting_start_date: meetingDate,
+                meeting_time: meetingTime,
+                journey_weeks: defaultJourneyWeeks()
             };
 
             var btn = document.getElementById('newPaperCreateBtn');
@@ -696,6 +792,62 @@
             } catch (e) { toast('Error: ' + e.message, 'error'); }
         }
 
+        /* ─── Journey (admin can mark weeks complete; drives the student dashboard journey) ─── */
+        var JOURNEY_UI_STATE = {};
+        function journeyCell(p) {
+            var weeks = Array.isArray(p.journey_weeks) ? p.journey_weeks : [];
+            var doneCount = weeks.filter(function (w) { return w && w.completed; }).length;
+            var state = JOURNEY_UI_STATE[p.id] || {};
+            var bar = '<div style="display:flex;gap:3px;">';
+            for (var i = 0; i < 6; i++) {
+                var w = weeks[i];
+                var on = w && w.completed;
+                bar += '<span style="width:14px;height:6px;border-radius:3px;background:' + (on ? '#22C55E' : '#e2e8f0') + ';"></span>';
+            }
+            bar += '</div>';
+            var arrowBtn = IS_FULL_ADMIN
+                ? '<button onclick="event.stopPropagation();toggleJourneyDropdown(\'' + p.id + '\')" title="Manage weeks" style="margin-left:6px;border:1px solid #cbd5e1;background:#fff;border-radius:4px;font-size:.7rem;line-height:1;padding:2px 6px;cursor:pointer;">▾</button>'
+                : '';
+            var html = '<div onclick="event.stopPropagation();"><div style="display:flex;align-items:center;">' + bar + arrowBtn + '</div>'
+                + '<div class="psub" style="margin-top:2px;">' + doneCount + '/6 weeks</div>';
+            if (state.open && IS_FULL_ADMIN) {
+                html += '<div style="margin-top:6px;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;padding:8px;min-width:190px;">';
+                for (var j = 0; j < 6; j++) {
+                    var wk = weeks[j] || { week: j + 1, label: 'Week ' + (j + 1), completed: false };
+                    html += '<label style="display:flex;align-items:center;gap:6px;font-size:.72rem;margin-bottom:4px;cursor:pointer;">'
+                        + '<input type="checkbox" ' + (wk.completed ? 'checked' : '') + ' onchange="toggleWeekComplete(\'' + p.id + '\',' + j + ', this.checked)">'
+                        + '<span>' + esc(wk.label || ('Week ' + (j + 1))) + ' <span style="color:#94a3b8;">(' + weekDateStr(p.meeting_start_date, j + 1) + ')</span></span>'
+                        + '</label>';
+                }
+                html += '</div>';
+            }
+            html += '</div>';
+            return html;
+        }
+        function toggleJourneyDropdown(paperId) {
+            var s = JOURNEY_UI_STATE[paperId] || {};
+            s.open = !s.open;
+            JOURNEY_UI_STATE[paperId] = s;
+            renderPapers();
+        }
+        async function toggleWeekComplete(paperId, idx, checked) {
+            if (!IS_FULL_ADMIN) return;
+            var paper = null;
+            for (var i = 0; i < PAPERS.length; i++) { if (PAPERS[i].id === paperId) { paper = PAPERS[i]; break; } }
+            if (!paper) return;
+            var weeks = (Array.isArray(paper.journey_weeks) && paper.journey_weeks.length) ? paper.journey_weeks.slice() : defaultJourneyWeeks();
+            weeks[idx] = weeks[idx] || { week: idx + 1, label: 'Week ' + (idx + 1) };
+            weeks[idx].completed = checked;
+            weeks[idx].completed_at = checked ? new Date().toISOString() : null;
+            try {
+                var res = await sb.from('papers').update({ journey_weeks: weeks }).eq('id', paperId);
+                if (res.error) throw res.error;
+                paper.journey_weeks = weeks;
+                toast(checked ? 'Week marked complete ✓' : 'Week marked incomplete', 'success');
+                renderPapers();
+            } catch (e) { toast('Error: ' + e.message, 'error'); }
+        }
+
         function renderPapers() {
             var box = document.getElementById('papersBox');
             var rows = IS_CO_ADMIN
@@ -719,6 +871,7 @@
             h += '<div class="card-wrap"><table><thead><tr>'
                 + '<th>Title</th><th>Genre</th><th>Track</th><th>Student</th>'
                 + (IS_CO_ADMIN ? '' : '<th>Assigned Writer(s)</th>')
+                + '<th>Meeting</th><th>Journey</th>'
                 + '<th>Status</th><th>Approved</th><th>AI Report</th><th>Last Edit</th><th></th>'
                 + '</tr></thead><tbody>';
             rows.forEach(function (p) {
@@ -743,6 +896,8 @@
                     + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
                     + '<td><span class="psub">' + esc(p.registrations ? p.registrations.full_name : '—') + '</span></td>'
                     + (IS_CO_ADMIN ? '' : '<td>' + tCell + '</td>')
+                    + '<td>' + meetingSummary(p) + '</td>'
+                    + '<td>' + journeyCell(p) + '</td>'
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
                     + '<td>' + approvalCell(p) + '</td>'
                     + '<td>' + aiReportCell(p) + '</td>'

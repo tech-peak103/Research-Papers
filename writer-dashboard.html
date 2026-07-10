@@ -182,6 +182,18 @@
             return '';
         }
 
+        /* ─── Meeting start date/time (writer sees only the starting slot, not the full journey) ─── */
+        function fmtTimeLabel(t) {
+            if (!t) return '—';
+            var parts = t.split(':'); var h = parseInt(parts[0], 10); var m = parts[1];
+            var ap = h >= 12 ? 'PM' : 'AM'; var h12 = h % 12; if (h12 === 0) h12 = 12;
+            return h12 + ':' + m + ' ' + ap;
+        }
+        function meetingStartCell(p) {
+            if (!p.created_at) return '<span class="psub">— not set —</span>';
+            return '<div class="psub">' + fmtWhen(p.created_at) + '</div>';
+        }
+
         /* ───────── AI REPORT (view-only for writer) ───────── */
         function aiReportCell(p) {
             var val = p.ai_report_percent;
@@ -275,7 +287,7 @@
                     + '</p></div>';
                 return;
             }
-            var h = '<div class="card-wrap"><table><thead><tr><th>Title</th><th>Track</th><th>Words</th><th>Status</th><th>AI Report</th><th>Last Edit</th><th></th></tr></thead><tbody>';
+            var h = '<div class="card-wrap"><table><thead><tr><th>Title</th><th>Track</th><th>Words</th><th>Status</th><th>Assigned On</th><th>AI Report</th><th>Last Edit</th><th></th></tr></thead><tbody>';
             data.forEach(function (p) {
                 var lastEd = p.writer_last_editor_name ? roleBadge(p.writer_last_editor_role) + ' ' + esc(p.writer_last_editor_name) + '<div class="last-ed">' + fmtWhen(p.writer_last_edited_at || p.updated_at) + '</div>' : '<span class="pauthor">' + fmtDate(p.updated_at) + '</span>';
                 var typeLbl = paperTypeLabel(p);
@@ -284,6 +296,7 @@
                     + '<td><span class="psub">' + (p.track === 'essay' ? 'Essay' : 'Research') + '</span></td>'
                     + '<td>' + (p.writer_word_count || 0) + '</td>'
                     + '<td><span class="pstatus ' + (p.status || 'draft') + '">' + (p.status || 'draft').replace('_', ' ') + '</span></td>'
+                    + '<td>' + meetingStartCell(p) + '</td>'
                     + '<td>' + aiReportCell(p) + '</td>'
                     + '<td>' + lastEd + '</td>'
                     + '<td><div class="row-actions"><button class="view-btn" onclick="event.stopPropagation();openPaper(\'' + p.id + '\')">Open / Edit →</button>' + delBtn(p.id) + '</div></td>'
